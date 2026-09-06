@@ -56,6 +56,9 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(Text, nullable=False)
     display_name: Mapped[str] = mapped_column(Text, nullable=False)
     is_demo: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
+    # Training history without a person behind it; see db/002 and
+    # scripts/seed_listeners.py. Never counted as a user anywhere.
+    is_synthetic: Mapped[bool] = mapped_column(Boolean, nullable=False, server_default="false")
     onboarded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = _created_at()
 
