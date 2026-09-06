@@ -52,9 +52,9 @@
     "_mode_fit_note": "Fitted by scripts/sweep_modes.py on validation groups nested inside train; the test groups were not seen. One deliberate override: the unconstrained fit chose tau_veto=0.0 for fair_rotation, which maximises proxy_min by removing the veto and enlarging the candidate pool. That trades a product guarantee -- no member sits through a track they strongly object to -- for a proxy metric, so tau is held at 0.35. The unconstrained result is recorded in eval/results/mode-sweep.json."
   },
   "config_hash": "899964bd8abb",
-  "git_sha": "e66e331",
+  "git_sha": "e62a82b",
   "engine_version": "0.3.0",
-  "run_at": "2026-09-06T18:58:46Z",
+  "run_at": "2026-09-06T19:14:45Z",
   "platform": "Darwin arm64 python 3.12.14",
   "dataset": {
     "path": "data/datasets/lb-day",
@@ -114,12 +114,52 @@
     }
   },
   "k": 20,
-  "total_seconds": 5.65,
+  "total_seconds": 5.59,
+  "comparisons": {
+    "consensus_vs_average_score": {
+      "held_mean": {
+        "n": 200.0,
+        "mean_difference": -0.0030833333333333333,
+        "ci_low": -0.008516666666666665,
+        "ci_high": 0.0018333333333333333,
+        "significant": 0.0
+      },
+      "held_served": {
+        "n": 200.0,
+        "mean_difference": 0.0020000000000000005,
+        "ci_low": -0.015249999999999996,
+        "ci_high": 0.018333333333333333,
+        "significant": 0.0
+      },
+      "proxy_min": {
+        "n": 200.0,
+        "mean_difference": 0.05289401616886348,
+        "ci_low": 0.04646447720339105,
+        "ci_high": 0.05957711899838602,
+        "significant": 1.0
+      },
+      "veto_violations": {
+        "n": 200.0,
+        "mean_difference": -0.07275000000000001,
+        "ci_low": -0.08875,
+        "ci_high": -0.05800000000000001,
+        "significant": 1.0
+      },
+      "max_artist_share": {
+        "n": 200.0,
+        "mean_difference": -0.07400000000000001,
+        "ci_low": -0.092,
+        "ci_high": -0.05675000000000001,
+        "significant": 1.0
+      }
+    },
+    "method": "Paired bootstrap over the same groups, 10,000 resamples, 95% percentile interval. An interval containing zero means the two strategies are not distinguishable on that metric at this sample size."
+  },
   "results": [
     {
       "strategy": "consensus",
       "groups_evaluated": 200,
-      "seconds": 0.292,
+      "seconds": 0.291,
       "overall": {
         "held_gini": 0.241438,
         "held_hits_total": 0.6,
@@ -211,7 +251,7 @@
     {
       "strategy": "discovery",
       "groups_evaluated": 200,
-      "seconds": 0.623,
+      "seconds": 0.625,
       "overall": {
         "held_gini": 0.181133,
         "held_hits_total": 0.4,
@@ -303,7 +343,7 @@
     {
       "strategy": "fair_rotation",
       "groups_evaluated": 200,
-      "seconds": 0.288,
+      "seconds": 0.289,
       "overall": {
         "held_gini": 0.251688,
         "held_hits_total": 0.565,
@@ -395,7 +435,7 @@
     {
       "strategy": "average-score",
       "groups_evaluated": 200,
-      "seconds": 0.537,
+      "seconds": 0.533,
       "overall": {
         "held_gini": 0.236187,
         "held_hits_total": 0.635,
@@ -487,7 +527,7 @@
     {
       "strategy": "least-misery",
       "groups_evaluated": 200,
-      "seconds": 0.533,
+      "seconds": 0.53,
       "overall": {
         "held_gini": 0.182736,
         "held_hits_total": 0.43,

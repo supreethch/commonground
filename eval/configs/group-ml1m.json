@@ -1,0 +1,52 @@
+{
+  "name": "group-ml1m",
+  "dataset": "data/datasets/ml-1m",
+  "seed": 20260906,
+  "k": 20,
+  "n_groups": 200,
+  "group_sizes": [
+    3,
+    4,
+    5,
+    6
+  ],
+  "per_member_candidates": 200,
+  "k_neighbours": 200,
+  "split": {
+    "n": 5,
+    "min_train_items": 5
+  },
+  "als": {
+    "factors": 64,
+    "regularization": 0.05,
+    "iterations": 20,
+    "alpha": 40.0
+  },
+  "hybrid_weights": {
+    "item-knn": 0.15,
+    "als": 0.35
+  },
+  "_hybrid_note": "Weights fitted in M3 by scripts/sweep_weights.py on a validation split nested inside train. The group layer uses the same scorer the individual evaluation reported on, so a difference in the group results is attributable to the group layer.",
+  "mode_overrides": {
+    "consensus": {
+      "alpha": 1.0,
+      "tau_veto": 0.35,
+      "lambda_fair": 0.45,
+      "lambda_nov": 0.0
+    },
+    "discovery": {
+      "alpha": 0.7,
+      "tau_veto": 0.25,
+      "lambda_fair": 0.45,
+      "lambda_nov": 0.35
+    },
+    "fair_rotation": {
+      "alpha": 0.7,
+      "tau_veto": 0.35,
+      "lambda_fair": 0.45,
+      "lambda_nov": 0.0
+    }
+  },
+  "_mode_fit_note": "Fitted by scripts/sweep_modes.py on validation groups nested inside train; the test groups were not seen. One deliberate override: the unconstrained fit chose tau_veto=0.0 for fair_rotation, which maximises proxy_min by removing the veto and enlarging the candidate pool. That trades a product guarantee -- no member sits through a track they strongly object to -- for a proxy metric, so tau is held at 0.35. The unconstrained result is recorded in eval/results/mode-sweep.json.",
+  "_repetition_note": "MovieLens has no artist, so the repetition axis is the film's primary genre. With only 18 genres, max_artist_share is high for every strategy and is not comparable to the music table's value -- there it counts one artist among thousands."
+}

@@ -1,0 +1,713 @@
+{
+  "name": "group-ml1m",
+  "config": {
+    "name": "group-ml1m",
+    "dataset": "data/datasets/ml-1m",
+    "seed": 20260906,
+    "k": 20,
+    "n_groups": 200,
+    "group_sizes": [
+      3,
+      4,
+      5,
+      6
+    ],
+    "per_member_candidates": 200,
+    "k_neighbours": 200,
+    "split": {
+      "n": 5,
+      "min_train_items": 5
+    },
+    "als": {
+      "factors": 64,
+      "regularization": 0.05,
+      "iterations": 20,
+      "alpha": 40.0
+    },
+    "hybrid_weights": {
+      "item-knn": 0.15,
+      "als": 0.35
+    },
+    "_hybrid_note": "Weights fitted in M3 by scripts/sweep_weights.py on a validation split nested inside train. The group layer uses the same scorer the individual evaluation reported on, so a difference in the group results is attributable to the group layer.",
+    "mode_overrides": {
+      "consensus": {
+        "alpha": 1.0,
+        "tau_veto": 0.35,
+        "lambda_fair": 0.45,
+        "lambda_nov": 0.0
+      },
+      "discovery": {
+        "alpha": 0.7,
+        "tau_veto": 0.25,
+        "lambda_fair": 0.45,
+        "lambda_nov": 0.35
+      },
+      "fair_rotation": {
+        "alpha": 0.7,
+        "tau_veto": 0.35,
+        "lambda_fair": 0.45,
+        "lambda_nov": 0.0
+      }
+    },
+    "_mode_fit_note": "Fitted by scripts/sweep_modes.py on validation groups nested inside train; the test groups were not seen. One deliberate override: the unconstrained fit chose tau_veto=0.0 for fair_rotation, which maximises proxy_min by removing the veto and enlarging the candidate pool. That trades a product guarantee -- no member sits through a track they strongly object to -- for a proxy metric, so tau is held at 0.35. The unconstrained result is recorded in eval/results/mode-sweep.json.",
+    "_repetition_note": "MovieLens has no artist, so the repetition axis is the film's primary genre. With only 18 genres, max_artist_share is high for every strategy and is not comparable to the music table's value -- there it counts one artist among thousands."
+  },
+  "config_hash": "a1a4e5443783",
+  "git_sha": "e62a82b",
+  "engine_version": "0.3.0",
+  "run_at": "2026-09-06T19:14:52Z",
+  "platform": "Darwin arm64 python 3.12.14",
+  "dataset": {
+    "path": "data/datasets/ml-1m",
+    "users": 5178,
+    "items": 3115,
+    "interactions": 561854
+  },
+  "groups": {
+    "total": 200,
+    "by_kind": {
+      "adversarial": {
+        "groups": 50,
+        "mean_size": 3.96,
+        "mean_cohesion": 0.01602
+      },
+      "cold_start": {
+        "groups": 50,
+        "mean_size": 4.56,
+        "mean_cohesion": 0.03421
+      },
+      "homogeneous": {
+        "groups": 50,
+        "mean_size": 4.48,
+        "mean_cohesion": 0.12535
+      },
+      "mixed": {
+        "groups": 50,
+        "mean_size": 4.56,
+        "mean_cohesion": 0.05387
+      }
+    }
+  },
+  "modes": {
+    "consensus": {
+      "alpha": 1.0,
+      "tau_veto": 0.35,
+      "lambda_div": 0.15,
+      "lambda_rep": 0.25,
+      "lambda_nov": 0.0,
+      "lambda_fair": 0.45
+    },
+    "discovery": {
+      "alpha": 0.7,
+      "tau_veto": 0.25,
+      "lambda_div": 0.3,
+      "lambda_rep": 0.25,
+      "lambda_nov": 0.35,
+      "lambda_fair": 0.45
+    },
+    "fair_rotation": {
+      "alpha": 0.7,
+      "tau_veto": 0.35,
+      "lambda_div": 0.15,
+      "lambda_rep": 0.25,
+      "lambda_nov": 0.0,
+      "lambda_fair": 0.45
+    }
+  },
+  "k": 20,
+  "total_seconds": 2.88,
+  "comparisons": {
+    "consensus_vs_average_score": {
+      "held_mean": {
+        "n": 200.0,
+        "mean_difference": -0.0011333333333333328,
+        "ci_low": -0.006183333333333334,
+        "ci_high": 0.003883333333333334,
+        "significant": 0.0
+      },
+      "held_served": {
+        "n": 200.0,
+        "mean_difference": -0.005000000000000001,
+        "ci_low": -0.02716666666666667,
+        "ci_high": 0.017252083333333303,
+        "significant": 0.0
+      },
+      "proxy_min": {
+        "n": 200.0,
+        "mean_difference": 0.008874458020502504,
+        "ci_low": 0.004540768674782189,
+        "ci_high": 0.013428900370249245,
+        "significant": 1.0
+      },
+      "veto_violations": {
+        "n": 200.0,
+        "mean_difference": -0.024,
+        "ci_low": -0.0325,
+        "ci_high": -0.01674375000000009,
+        "significant": 1.0
+      },
+      "max_artist_share": {
+        "n": 200.0,
+        "mean_difference": -0.1465,
+        "ci_low": -0.15925,
+        "ci_high": -0.13425,
+        "significant": 1.0
+      }
+    },
+    "method": "Paired bootstrap over the same groups, 10,000 resamples, 95% percentile interval. An interval containing zero means the two strategies are not distinguishable on that metric at this sample size."
+  },
+  "results": [
+    {
+      "strategy": "consensus",
+      "groups_evaluated": 200,
+      "seconds": 0.175,
+      "overall": {
+        "held_gini": 0.476972,
+        "held_hits_total": 1.315,
+        "held_mean": 0.060033,
+        "held_min": 0.002,
+        "held_served": 0.256333,
+        "held_variance": 0.009318,
+        "max_artist_share": 0.23,
+        "max_member_share": 0.37625,
+        "novelty": 9.040661,
+        "proxy_gini": 0.017978,
+        "proxy_mean": 0.853059,
+        "proxy_min": 0.819398,
+        "tracks": 20.0,
+        "veto_violations": 0.0,
+        "vetoed_candidates": 0.785242
+      },
+      "by_kind": {
+        "adversarial": {
+          "held_gini": 0.435222,
+          "held_hits_total": 0.98,
+          "held_mean": 0.049,
+          "held_min": 0.0,
+          "held_served": 0.209,
+          "held_variance": 0.007989,
+          "max_artist_share": 0.22,
+          "max_member_share": 0.42,
+          "novelty": 8.771639,
+          "proxy_gini": 0.018749,
+          "proxy_mean": 0.864269,
+          "proxy_min": 0.825878,
+          "tracks": 20.0,
+          "veto_violations": 0.0,
+          "vetoed_candidates": 0.777296
+        },
+        "cold_start": {
+          "held_gini": 0.464444,
+          "held_hits_total": 1.48,
+          "held_mean": 0.064667,
+          "held_min": 0.004,
+          "held_served": 0.288,
+          "held_variance": 0.009008,
+          "max_artist_share": 0.221,
+          "max_member_share": 0.369,
+          "novelty": 8.864909,
+          "proxy_gini": 0.019245,
+          "proxy_mean": 0.870778,
+          "proxy_min": 0.833559,
+          "tracks": 20.0,
+          "veto_violations": 0.0,
+          "vetoed_candidates": 0.795335
+        },
+        "homogeneous": {
+          "held_gini": 0.496222,
+          "held_hits_total": 1.5,
+          "held_mean": 0.070333,
+          "held_min": 0.004,
+          "held_served": 0.275667,
+          "held_variance": 0.011684,
+          "max_artist_share": 0.243,
+          "max_member_share": 0.362,
+          "novelty": 9.393441,
+          "proxy_gini": 0.015174,
+          "proxy_mean": 0.844605,
+          "proxy_min": 0.818692,
+          "tracks": 20.0,
+          "veto_violations": 0.0,
+          "vetoed_candidates": 0.768779
+        },
+        "mixed": {
+          "held_gini": 0.512,
+          "held_hits_total": 1.3,
+          "held_mean": 0.056133,
+          "held_min": 0.0,
+          "held_served": 0.252667,
+          "held_variance": 0.008593,
+          "max_artist_share": 0.236,
+          "max_member_share": 0.354,
+          "novelty": 9.132657,
+          "proxy_gini": 0.018742,
+          "proxy_mean": 0.832584,
+          "proxy_min": 0.799464,
+          "tracks": 20.0,
+          "veto_violations": 0.0,
+          "vetoed_candidates": 0.799557
+        }
+      }
+    },
+    {
+      "strategy": "discovery",
+      "groups_evaluated": 200,
+      "seconds": 0.322,
+      "overall": {
+        "held_gini": 0.499878,
+        "held_hits_total": 1.305,
+        "held_mean": 0.06005,
+        "held_min": 0.002,
+        "held_served": 0.262833,
+        "held_variance": 0.008825,
+        "max_artist_share": 0.214,
+        "max_member_share": 0.36825,
+        "novelty": 9.286861,
+        "proxy_gini": 0.014608,
+        "proxy_mean": 0.834526,
+        "proxy_min": 0.808311,
+        "tracks": 20.0,
+        "veto_violations": 0.064,
+        "vetoed_candidates": 0.65715
+      },
+      "by_kind": {
+        "adversarial": {
+          "held_gini": 0.429667,
+          "held_hits_total": 0.92,
+          "held_mean": 0.045,
+          "held_min": 0.0,
+          "held_served": 0.213667,
+          "held_variance": 0.006151,
+          "max_artist_share": 0.214,
+          "max_member_share": 0.413,
+          "novelty": 9.018166,
+          "proxy_gini": 0.015305,
+          "proxy_mean": 0.848182,
+          "proxy_min": 0.819779,
+          "tracks": 20.0,
+          "veto_violations": 0.041,
+          "vetoed_candidates": 0.642135
+        },
+        "cold_start": {
+          "held_gini": 0.507556,
+          "held_hits_total": 1.42,
+          "held_mean": 0.063667,
+          "held_min": 0.004,
+          "held_served": 0.282333,
+          "held_variance": 0.009222,
+          "max_artist_share": 0.212,
+          "max_member_share": 0.352,
+          "novelty": 9.094654,
+          "proxy_gini": 0.014006,
+          "proxy_mean": 0.852942,
+          "proxy_min": 0.827619,
+          "tracks": 20.0,
+          "veto_violations": 0.056,
+          "vetoed_candidates": 0.674247
+        },
+        "homogeneous": {
+          "held_gini": 0.514733,
+          "held_hits_total": 1.58,
+          "held_mean": 0.074067,
+          "held_min": 0.004,
+          "held_served": 0.297667,
+          "held_variance": 0.011073,
+          "max_artist_share": 0.224,
+          "max_member_share": 0.36,
+          "novelty": 9.658556,
+          "proxy_gini": 0.014156,
+          "proxy_mean": 0.82611,
+          "proxy_min": 0.801655,
+          "tracks": 20.0,
+          "veto_violations": 0.075,
+          "vetoed_candidates": 0.637935
+        },
+        "mixed": {
+          "held_gini": 0.547556,
+          "held_hits_total": 1.3,
+          "held_mean": 0.057467,
+          "held_min": 0.0,
+          "held_served": 0.257667,
+          "held_variance": 0.008854,
+          "max_artist_share": 0.206,
+          "max_member_share": 0.348,
+          "novelty": 9.376068,
+          "proxy_gini": 0.014965,
+          "proxy_mean": 0.810869,
+          "proxy_min": 0.784193,
+          "tracks": 20.0,
+          "veto_violations": 0.084,
+          "vetoed_candidates": 0.674284
+        }
+      }
+    },
+    {
+      "strategy": "fair_rotation",
+      "groups_evaluated": 200,
+      "seconds": 0.174,
+      "overall": {
+        "held_gini": 0.476,
+        "held_hits_total": 1.33,
+        "held_mean": 0.060433,
+        "held_min": 0.002,
+        "held_served": 0.25775,
+        "held_variance": 0.009264,
+        "max_artist_share": 0.23525,
+        "max_member_share": 0.383,
+        "novelty": 9.033254,
+        "proxy_gini": 0.016669,
+        "proxy_mean": 0.853953,
+        "proxy_min": 0.822565,
+        "tracks": 20.0,
+        "veto_violations": 0.0,
+        "vetoed_candidates": 0.785242
+      },
+      "by_kind": {
+        "adversarial": {
+          "held_gini": 0.440556,
+          "held_hits_total": 0.98,
+          "held_mean": 0.048333,
+          "held_min": 0.0,
+          "held_served": 0.223667,
+          "held_variance": 0.006671,
+          "max_artist_share": 0.226,
+          "max_member_share": 0.427,
+          "novelty": 8.765339,
+          "proxy_gini": 0.018207,
+          "proxy_mean": 0.865432,
+          "proxy_min": 0.828871,
+          "tracks": 20.0,
+          "veto_violations": 0.0,
+          "vetoed_candidates": 0.777296
+        },
+        "cold_start": {
+          "held_gini": 0.453444,
+          "held_hits_total": 1.48,
+          "held_mean": 0.064467,
+          "held_min": 0.004,
+          "held_served": 0.279,
+          "held_variance": 0.00937,
+          "max_artist_share": 0.233,
+          "max_member_share": 0.379,
+          "novelty": 8.860324,
+          "proxy_gini": 0.018075,
+          "proxy_mean": 0.871929,
+          "proxy_min": 0.838149,
+          "tracks": 20.0,
+          "veto_violations": 0.0,
+          "vetoed_candidates": 0.795335
+        },
+        "homogeneous": {
+          "held_gini": 0.504556,
+          "held_hits_total": 1.58,
+          "held_mean": 0.073267,
+          "held_min": 0.004,
+          "held_served": 0.289667,
+          "held_variance": 0.011665,
+          "max_artist_share": 0.244,
+          "max_member_share": 0.364,
+          "novelty": 9.373505,
+          "proxy_gini": 0.013406,
+          "proxy_mean": 0.845071,
+          "proxy_min": 0.820792,
+          "tracks": 20.0,
+          "veto_violations": 0.0,
+          "vetoed_candidates": 0.768779
+        },
+        "mixed": {
+          "held_gini": 0.505444,
+          "held_hits_total": 1.28,
+          "held_mean": 0.055667,
+          "held_min": 0.0,
+          "held_served": 0.238667,
+          "held_variance": 0.009351,
+          "max_artist_share": 0.238,
+          "max_member_share": 0.362,
+          "novelty": 9.133848,
+          "proxy_gini": 0.016989,
+          "proxy_mean": 0.833378,
+          "proxy_min": 0.802449,
+          "tracks": 20.0,
+          "veto_violations": 0.0,
+          "vetoed_candidates": 0.799557
+        }
+      }
+    },
+    {
+      "strategy": "average-score",
+      "groups_evaluated": 200,
+      "seconds": 0.221,
+      "overall": {
+        "held_gini": 0.481917,
+        "held_hits_total": 1.325,
+        "held_mean": 0.061167,
+        "held_min": 0.001,
+        "held_served": 0.261333,
+        "held_variance": 0.009486,
+        "max_artist_share": 0.3765,
+        "max_member_share": 0.398,
+        "novelty": 8.936348,
+        "proxy_gini": 0.026241,
+        "proxy_mean": 0.876059,
+        "proxy_min": 0.810524,
+        "tracks": 20.0,
+        "veto_violations": 0.024,
+        "vetoed_candidates": 0.0
+      },
+      "by_kind": {
+        "adversarial": {
+          "held_gini": 0.435333,
+          "held_hits_total": 1.04,
+          "held_mean": 0.053133,
+          "held_min": 0.0,
+          "held_served": 0.228667,
+          "held_variance": 0.008221,
+          "max_artist_share": 0.39,
+          "max_member_share": 0.463,
+          "novelty": 8.63318,
+          "proxy_gini": 0.027741,
+          "proxy_mean": 0.887691,
+          "proxy_min": 0.817068,
+          "tracks": 20.0,
+          "veto_violations": 0.003,
+          "vetoed_candidates": 0.0
+        },
+        "cold_start": {
+          "held_gini": 0.415444,
+          "held_hits_total": 1.42,
+          "held_mean": 0.0628,
+          "held_min": 0.004,
+          "held_served": 0.275333,
+          "held_variance": 0.008903,
+          "max_artist_share": 0.37,
+          "max_member_share": 0.394,
+          "novelty": 8.76053,
+          "proxy_gini": 0.02589,
+          "proxy_mean": 0.893047,
+          "proxy_min": 0.825225,
+          "tracks": 20.0,
+          "veto_violations": 0.025,
+          "vetoed_candidates": 0.0
+        },
+        "homogeneous": {
+          "held_gini": 0.526611,
+          "held_hits_total": 1.46,
+          "held_mean": 0.0672,
+          "held_min": 0.0,
+          "held_served": 0.266667,
+          "held_variance": 0.011698,
+          "max_artist_share": 0.387,
+          "max_member_share": 0.357,
+          "novelty": 9.314985,
+          "proxy_gini": 0.022493,
+          "proxy_mean": 0.867981,
+          "proxy_min": 0.815392,
+          "tracks": 20.0,
+          "veto_violations": 0.034,
+          "vetoed_candidates": 0.0
+        },
+        "mixed": {
+          "held_gini": 0.550278,
+          "held_hits_total": 1.38,
+          "held_mean": 0.061533,
+          "held_min": 0.0,
+          "held_served": 0.274667,
+          "held_variance": 0.009124,
+          "max_artist_share": 0.359,
+          "max_member_share": 0.378,
+          "novelty": 9.036698,
+          "proxy_gini": 0.028839,
+          "proxy_mean": 0.855515,
+          "proxy_min": 0.784409,
+          "tracks": 20.0,
+          "veto_violations": 0.034,
+          "vetoed_candidates": 0.0
+        }
+      }
+    },
+    {
+      "strategy": "least-misery",
+      "groups_evaluated": 200,
+      "seconds": 0.218,
+      "overall": {
+        "held_gini": 0.444181,
+        "held_hits_total": 1.25,
+        "held_mean": 0.058017,
+        "held_min": 0.002,
+        "held_served": 0.2445,
+        "held_variance": 0.009018,
+        "max_artist_share": 0.3755,
+        "max_member_share": 0.40525,
+        "novelty": 8.999185,
+        "proxy_gini": 0.019767,
+        "proxy_mean": 0.861666,
+        "proxy_min": 0.817155,
+        "tracks": 20.0,
+        "veto_violations": 0.0,
+        "vetoed_candidates": 0.0
+      },
+      "by_kind": {
+        "adversarial": {
+          "held_gini": 0.382333,
+          "held_hits_total": 1.02,
+          "held_mean": 0.0516,
+          "held_min": 0.0,
+          "held_served": 0.223333,
+          "held_variance": 0.00776,
+          "max_artist_share": 0.382,
+          "max_member_share": 0.468,
+          "novelty": 8.714361,
+          "proxy_gini": 0.020802,
+          "proxy_mean": 0.875774,
+          "proxy_min": 0.82848,
+          "tracks": 20.0,
+          "veto_violations": 0.0,
+          "vetoed_candidates": 0.0
+        },
+        "cold_start": {
+          "held_gini": 0.418778,
+          "held_hits_total": 1.3,
+          "held_mean": 0.0594,
+          "held_min": 0.004,
+          "held_served": 0.265667,
+          "held_variance": 0.008138,
+          "max_artist_share": 0.369,
+          "max_member_share": 0.395,
+          "novelty": 8.839239,
+          "proxy_gini": 0.019581,
+          "proxy_mean": 0.880488,
+          "proxy_min": 0.835201,
+          "tracks": 20.0,
+          "veto_violations": 0.0,
+          "vetoed_candidates": 0.0
+        },
+        "homogeneous": {
+          "held_gini": 0.454056,
+          "held_hits_total": 1.38,
+          "held_mean": 0.064133,
+          "held_min": 0.004,
+          "held_served": 0.244667,
+          "held_variance": 0.010922,
+          "max_artist_share": 0.385,
+          "max_member_share": 0.366,
+          "novelty": 9.339537,
+          "proxy_gini": 0.017008,
+          "proxy_mean": 0.85328,
+          "proxy_min": 0.81654,
+          "tracks": 20.0,
+          "veto_violations": 0.0,
+          "vetoed_candidates": 0.0
+        },
+        "mixed": {
+          "held_gini": 0.521556,
+          "held_hits_total": 1.3,
+          "held_mean": 0.056933,
+          "held_min": 0.0,
+          "held_served": 0.244333,
+          "held_variance": 0.009252,
+          "max_artist_share": 0.366,
+          "max_member_share": 0.392,
+          "novelty": 9.103605,
+          "proxy_gini": 0.021676,
+          "proxy_mean": 0.837122,
+          "proxy_min": 0.788397,
+          "tracks": 20.0,
+          "veto_violations": 0.0,
+          "vetoed_candidates": 0.0
+        }
+      }
+    },
+    {
+      "strategy": "popularity",
+      "groups_evaluated": 200,
+      "seconds": 0.005,
+      "overall": {
+        "held_gini": 0.450964,
+        "held_hits_total": 1.255,
+        "held_mean": 0.0571,
+        "held_min": 0.0,
+        "held_served": 0.230917,
+        "held_variance": 0.00994,
+        "max_artist_share": 0.412,
+        "max_member_share": 0.4625,
+        "novelty": 8.717304,
+        "proxy_gini": 0.044717,
+        "proxy_mean": 0.821531,
+        "proxy_min": 0.723164,
+        "tracks": 20.0,
+        "veto_violations": 0.12025,
+        "vetoed_candidates": 0.0
+      },
+      "by_kind": {
+        "adversarial": {
+          "held_gini": 0.421333,
+          "held_hits_total": 1.08,
+          "held_mean": 0.054867,
+          "held_min": 0.0,
+          "held_served": 0.224,
+          "held_variance": 0.00901,
+          "max_artist_share": 0.436,
+          "max_member_share": 0.535,
+          "novelty": 8.447323,
+          "proxy_gini": 0.051214,
+          "proxy_mean": 0.84589,
+          "proxy_min": 0.729129,
+          "tracks": 20.0,
+          "veto_violations": 0.064,
+          "vetoed_candidates": 0.0
+        },
+        "cold_start": {
+          "held_gini": 0.450089,
+          "held_hits_total": 1.34,
+          "held_mean": 0.058,
+          "held_min": 0.0,
+          "held_served": 0.236667,
+          "held_variance": 0.010199,
+          "max_artist_share": 0.41,
+          "max_member_share": 0.446,
+          "novelty": 8.628066,
+          "proxy_gini": 0.038914,
+          "proxy_mean": 0.8544,
+          "proxy_min": 0.763215,
+          "tracks": 20.0,
+          "veto_violations": 0.095,
+          "vetoed_candidates": 0.0
+        },
+        "homogeneous": {
+          "held_gini": 0.434878,
+          "held_hits_total": 1.32,
+          "held_mean": 0.058933,
+          "held_min": 0.0,
+          "held_served": 0.235333,
+          "held_variance": 0.010178,
+          "max_artist_share": 0.397,
+          "max_member_share": 0.452,
+          "novelty": 8.933762,
+          "proxy_gini": 0.049365,
+          "proxy_mean": 0.775613,
+          "proxy_min": 0.678753,
+          "tracks": 20.0,
+          "veto_violations": 0.219,
+          "vetoed_candidates": 0.0
+        },
+        "mixed": {
+          "held_gini": 0.497556,
+          "held_hits_total": 1.28,
+          "held_mean": 0.0566,
+          "held_min": 0.0,
+          "held_served": 0.227667,
+          "held_variance": 0.010374,
+          "max_artist_share": 0.405,
+          "max_member_share": 0.417,
+          "novelty": 8.860063,
+          "proxy_gini": 0.039374,
+          "proxy_mean": 0.810222,
+          "proxy_min": 0.721556,
+          "tracks": 20.0,
+          "veto_violations": 0.103,
+          "vetoed_candidates": 0.0
+        }
+      }
+    }
+  ]
+}

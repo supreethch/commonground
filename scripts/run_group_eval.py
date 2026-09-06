@@ -179,6 +179,35 @@ def main(argv: list[str] | None = None) -> int:
     total = time.perf_counter() - started
 
     print(group_evaluate.summary_table(results))
+
+    # Paired bootstrap against the baseline this project claims to improve on.
+    # Printed next to the table on purpose: a mean difference without an
+    # interval invites reading noise as a result, which is exactly what happened
+    # to the first version of the M4 write-up.
+    comparisons = {}
+    print("\nconsensus vs average-score, paired bootstrap over the same groups (95% CI):\n")
+    print("| metric | difference | 95% CI | distinguishable from zero? |")
+    print("| --- | --- | --- | --- |")
+    for metric in (
+        "held_mean",
+        "held_served",
+        "proxy_min",
+        "veto_violations",
+        "max_artist_share",
+    ):
+        try:
+            comparison = group_evaluate.paired_difference(
+                results, metric, "consensus", "average-score", seed=seed
+            )
+        except KeyError:
+            continue
+        comparisons[metric] = comparison
+        verdict = "**yes**" if comparison["significant"] else "no"
+        print(
+            f"| {metric} | {comparison['mean_difference']:+.4f} | "
+            f"[{comparison['ci_low']:+.4f}, {comparison['ci_high']:+.4f}] | {verdict} |"
+        )
+
     print(f"\ntotal {total:.1f}s")
 
     record = {
@@ -209,6 +238,14 @@ def main(argv: list[str] | None = None) -> int:
         },
         "k": config.get("k", 20),
         "total_seconds": round(total, 2),
+        "comparisons": {
+            "consensus_vs_average_score": comparisons,
+            "method": (
+                "Paired bootstrap over the same groups, 10,000 resamples, 95% "
+                "percentile interval. An interval containing zero means the two "
+                "strategies are not distinguishable on that metric at this sample size."
+            ),
+        },
         "results": [result.as_dict() for result in results],
     }
 

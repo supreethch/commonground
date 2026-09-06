@@ -37,6 +37,11 @@ class GroupResult:
     overall: dict[str, float] = field(default_factory=dict)
     groups_evaluated: int = 0
     seconds: float = 0.0
+    # Per-group values, kept so two strategies can be compared *paired* on the
+    # same groups. Reporting only the means invites reading a 0.01 gap over 50
+    # groups as a result when it is inside the noise -- which is exactly the
+    # mistake the second dataset exposed.
+    per_group: dict[str, list[float]] = field(default_factory=dict)
 
     def as_dict(self) -> dict:
         return {
@@ -203,9 +208,54 @@ def evaluate_groups(
                 },
                 groups_evaluated=evaluated,
                 seconds=timings[name],
+                per_group=accumulated[name],
             )
         )
     return results
+
+
+def paired_difference(
+    results: list[GroupResult],
+    metric: str,
+    treatment: str,
+    baseline: str,
+    *,
+    iterations: int = 10_000,
+    seed: int = 0,
+) -> dict[str, float]:
+    """Bootstrap the paired difference between two strategies on one metric.
+
+    Paired, because every strategy saw the same groups: the per-group difference
+    removes the variance from some groups simply being easier than others, which
+    otherwise swamps the effect being measured.
+
+    Returns the mean difference and a 95% percentile interval. An interval
+    straddling zero means the two strategies are not distinguishable on this
+    metric at this sample size -- which is a result, and a more useful one than
+    a decimal place that happens to fall the right way.
+    """
+    by_name = {result.strategy: result for result in results}
+    if treatment not in by_name or baseline not in by_name:
+        raise KeyError(f"need both {treatment!r} and {baseline!r}")
+
+    left = np.asarray(by_name[treatment].per_group.get(metric, []), dtype=np.float64)
+    right = np.asarray(by_name[baseline].per_group.get(metric, []), dtype=np.float64)
+    if len(left) == 0 or len(left) != len(right):
+        return {"n": 0.0, "mean_difference": 0.0, "ci_low": 0.0, "ci_high": 0.0}
+
+    differences = left - right
+    rng = np.random.default_rng(seed)
+    indices = rng.integers(0, len(differences), size=(iterations, len(differences)))
+    means = differences[indices].mean(axis=1)
+    low, high = np.percentile(means, [2.5, 97.5])
+
+    return {
+        "n": float(len(differences)),
+        "mean_difference": float(differences.mean()),
+        "ci_low": float(low),
+        "ci_high": float(high),
+        "significant": float(low > 0 or high < 0),
+    }
 
 
 def summary_table(results: list[GroupResult]) -> str:
