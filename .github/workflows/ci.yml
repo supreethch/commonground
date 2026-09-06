@@ -1,5 +1,9 @@
 # Lint and tests on every push and pull request.
 #
+# The database-backed tests are not optional here. They skip locally when no
+# Postgres is reachable, so CI is the only place guaranteed to run them -- a
+# service container is what stops that skip from silently becoming permanent.
+#
 # The frontend jobs (vitest, tsc, Playwright) join this file in M5, when there
 # is a frontend to run them against. A workflow with a job that always fails
 # gets ignored within a week, which is worse than not having the job.
@@ -61,6 +65,7 @@ jobs:
       - name: Install
         run: |
           pip install -e "packages/engine[dev]"
+          pip install -e "apps/api[dev]"
           pip install "psycopg[binary]>=3.2" pytest-asyncio
 
       - name: Tests
