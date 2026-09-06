@@ -181,8 +181,18 @@ def item_features_from_artists(data: Interactions, artist_tags: dict[str, list[s
         # artist are more alike than two tracks sharing the tag "rock".
         values.append(2.0)
 
-        for tag in artist_tags.get(artist.casefold(), []):
-            tag_feature = f"tag:{tag}"
+        # Per-item tags where the dataset has them (MovieLens), the artist's
+        # tags otherwise (the music slice, whose dump carries no per-track
+        # tags). Preferring the per-item list matters: giving every film by the
+        # same primary genre an identical tag set would make the content model
+        # a restatement of that one feature.
+        if data.item_tags is not None and data.item_tags[item]:
+            tags = data.item_tags[item]
+        else:
+            tags = artist_tags.get(artist.casefold(), [])
+
+        for tag in tags:
+            tag_feature = f"tag:{tag.casefold()}"
             index = feature_index.setdefault(tag_feature, len(feature_index))
             rows.append(item)
             cols.append(index)

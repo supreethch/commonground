@@ -1,0 +1,228 @@
+{
+  "name": "individual-ml1m",
+  "config": {
+    "name": "individual-ml1m",
+    "dataset": "data/datasets/ml-1m",
+    "seed": 20260906,
+    "ks": [
+      5,
+      10,
+      20
+    ],
+    "report_ks": [
+      10
+    ],
+    "k_neighbours": 200,
+    "max_eval_users": 1500,
+    "split": {
+      "n": 5,
+      "min_train_items": 5
+    },
+    "als": {
+      "factors": 64,
+      "regularization": 0.05,
+      "iterations": 20,
+      "alpha": 40.0
+    },
+    "hybrids": {
+      "hybrid-knn-als": {
+        "item-knn": 0.5,
+        "als": 0.5
+      },
+      "hybrid-full": {
+        "item-knn": 0.45,
+        "als": 0.35,
+        "content-knn": 0.15,
+        "popularity": 0.05
+      },
+      "hybrid-fitted": {
+        "item-knn": 0.15,
+        "als": 0.35
+      }
+    },
+    "_hybrid_fitted_note": "Weights from scripts/sweep_weights.py, grid-searched on a validation split nested inside the training data. The sweep never saw this test split. It assigned content-knn and popularity zero weight in all of its top 8 results.",
+    "_note": "MovieLens-1M, the most reported benchmark in the field, as a second target so one table is comparable to published work. Absolute values still are not directly comparable to any given paper without matching its binarisation and split -- ours is ratings>=4 with a time-ordered leave-last-5-out."
+  },
+  "config_hash": "b19fda101d8b",
+  "git_sha": "e62a82b",
+  "engine_version": "0.3.0",
+  "run_at": "2026-09-06T19:12:24Z",
+  "platform": "Darwin arm64 python 3.12.14",
+  "dataset": {
+    "path": "data/datasets/ml-1m",
+    "users": 5178,
+    "items": 3115,
+    "interactions": 561854,
+    "density": 0.03483400260516929,
+    "items_with_genre_tags": 0
+  },
+  "split": {
+    "train_interactions": 535964,
+    "users_evaluated": 5178,
+    "n": 5,
+    "min_train_items": 5
+  },
+  "total_seconds": 15.16,
+  "results": [
+    {
+      "model": "random",
+      "users_evaluated": 1500,
+      "fit_seconds": 0.0,
+      "eval_seconds": 0.083,
+      "metrics": {
+        "coverage@10": 0.992616,
+        "exposure_gini@10": 0.252546,
+        "ndcg@10": 0.002346,
+        "ndcg@20": 0.003618,
+        "ndcg@5": 0.001401,
+        "novelty@10": 13.142209,
+        "precision@10": 0.001667,
+        "precision@20": 0.001567,
+        "precision@5": 0.0016,
+        "recall@10": 0.003333,
+        "recall@20": 0.006267,
+        "recall@5": 0.0016
+      }
+    },
+    {
+      "model": "popularity",
+      "users_evaluated": 1500,
+      "fit_seconds": 0.001,
+      "eval_seconds": 0.052,
+      "metrics": {
+        "coverage@10": 0.032103,
+        "exposure_gini@10": 0.993191,
+        "ndcg@10": 0.036052,
+        "ndcg@20": 0.049678,
+        "ndcg@5": 0.025187,
+        "novelty@10": 8.103451,
+        "precision@10": 0.022,
+        "precision@20": 0.018967,
+        "precision@5": 0.024,
+        "recall@10": 0.044,
+        "recall@20": 0.075867,
+        "recall@5": 0.024
+      }
+    },
+    {
+      "model": "item-knn",
+      "users_evaluated": 1500,
+      "fit_seconds": 0.663,
+      "eval_seconds": 0.156,
+      "metrics": {
+        "coverage@10": 0.074478,
+        "exposure_gini@10": 0.983168,
+        "ndcg@10": 0.049702,
+        "ndcg@20": 0.06702,
+        "ndcg@5": 0.036209,
+        "novelty@10": 8.440923,
+        "precision@10": 0.0292,
+        "precision@20": 0.0247,
+        "precision@5": 0.0336,
+        "recall@10": 0.0584,
+        "recall@20": 0.0988,
+        "recall@5": 0.0336
+      }
+    },
+    {
+      "model": "als",
+      "users_evaluated": 1500,
+      "fit_seconds": 2.082,
+      "eval_seconds": 0.078,
+      "metrics": {
+        "coverage@10": 0.455538,
+        "exposure_gini@10": 0.806729,
+        "ndcg@10": 0.049995,
+        "ndcg@20": 0.07018,
+        "ndcg@5": 0.03211,
+        "novelty@10": 9.895709,
+        "precision@10": 0.0322,
+        "precision@20": 0.028067,
+        "precision@5": 0.031333,
+        "recall@10": 0.0644,
+        "recall@20": 0.112267,
+        "recall@5": 0.031333
+      }
+    },
+    {
+      "model": "content-knn",
+      "users_evaluated": 1500,
+      "fit_seconds": 0.176,
+      "eval_seconds": 0.175,
+      "metrics": {
+        "coverage@10": 0.310112,
+        "exposure_gini@10": 0.940066,
+        "ndcg@10": 0.006769,
+        "ndcg@20": 0.011226,
+        "ndcg@5": 0.003971,
+        "novelty@10": 12.840242,
+        "precision@10": 0.0044,
+        "precision@20": 0.0048,
+        "precision@5": 0.003733,
+        "recall@10": 0.0088,
+        "recall@20": 0.0192,
+        "recall@5": 0.003733
+      }
+    },
+    {
+      "model": "hybrid-knn-als",
+      "users_evaluated": 1500,
+      "fit_seconds": 2.897,
+      "eval_seconds": 0.773,
+      "metrics": {
+        "coverage@10": 0.157945,
+        "exposure_gini@10": 0.958355,
+        "ndcg@10": 0.054748,
+        "ndcg@20": 0.074833,
+        "ndcg@5": 0.040829,
+        "novelty@10": 8.766061,
+        "precision@10": 0.0324,
+        "precision@20": 0.028067,
+        "precision@5": 0.039067,
+        "recall@10": 0.0648,
+        "recall@20": 0.112267,
+        "recall@5": 0.039067
+      }
+    },
+    {
+      "model": "hybrid-full",
+      "users_evaluated": 1500,
+      "fit_seconds": 2.849,
+      "eval_seconds": 1.337,
+      "metrics": {
+        "coverage@10": 0.149278,
+        "exposure_gini@10": 0.960043,
+        "ndcg@10": 0.045526,
+        "ndcg@20": 0.064235,
+        "ndcg@5": 0.032881,
+        "novelty@10": 9.14432,
+        "precision@10": 0.027533,
+        "precision@20": 0.024767,
+        "precision@5": 0.031733,
+        "recall@10": 0.055067,
+        "recall@20": 0.099067,
+        "recall@5": 0.031733
+      }
+    },
+    {
+      "model": "hybrid-fitted",
+      "users_evaluated": 1500,
+      "fit_seconds": 2.653,
+      "eval_seconds": 0.77,
+      "metrics": {
+        "coverage@10": 0.207384,
+        "exposure_gini@10": 0.935974,
+        "ndcg@10": 0.055397,
+        "ndcg@20": 0.075934,
+        "ndcg@5": 0.040482,
+        "novelty@10": 9.002665,
+        "precision@10": 0.033133,
+        "precision@20": 0.028733,
+        "precision@5": 0.038933,
+        "recall@10": 0.066267,
+        "recall@20": 0.114933,
+        "recall@5": 0.038933
+      }
+    }
+  ]
+}

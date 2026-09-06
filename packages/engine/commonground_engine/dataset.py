@@ -32,6 +32,12 @@ class Interactions:
     n_items: int
     item_labels: list[str] | None = None
     item_artists: list[str] | None = None
+    # Per-item tags, when the dataset carries them directly. MovieLens does;
+    # the music slice reaches genres through the artist instead, because the
+    # listen dump has no per-track tags. Carrying both means the content model
+    # can use whichever the dataset actually has rather than assuming an artist
+    # is always the route to a genre.
+    item_tags: list[list[str]] | None = None
 
     def __post_init__(self) -> None:
         if not (len(self.users) == len(self.items) == len(self.timestamps)):
@@ -88,6 +94,7 @@ class Interactions:
             n_items=self.n_items,
             item_labels=self.item_labels,
             item_artists=self.item_artists,
+            item_tags=self.item_tags,
         )
 
 
@@ -100,11 +107,14 @@ def load(directory: str | Path) -> Interactions:
 
     labels: list[str] | None = None
     artists: list[str] | None = None
+    tags: list[list[str]] | None = None
     items_path = directory / "items.json"
     if items_path.exists():
         items = json.loads(items_path.read_text())
         labels = [f"{item['artist']} - {item['track']}" for item in items]
         artists = [item["artist"] for item in items]
+        if any("genres" in item for item in items):
+            tags = [list(item.get("genres") or []) for item in items]
 
     return Interactions(
         users=rows,
@@ -114,4 +124,5 @@ def load(directory: str | Path) -> Interactions:
         n_items=len(labels) if labels else (int(cols.max()) + 1 if len(cols) else 0),
         item_labels=labels,
         item_artists=artists,
+        item_tags=tags,
     )
