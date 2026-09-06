@@ -334,3 +334,41 @@ def test_a_join_is_broadcast_to_a_connected_member(client, register) -> None:
 
     assert event["type"] == "member_joined"
     assert event["user_id"] == str(guest["user_id"])
+
+
+def test_a_demo_account_can_generate_and_vote_but_not_edit_a_profile(
+    client, register, session
+) -> None:
+    """The read-only guard protects what the *next* visitor sees.
+
+    A playlist row and a vote are not that: neither rewrites anyone's taste. The
+    guard that matters is on the profile, and blocking the demo from the two
+    actions it exists to demonstrate would be protecting nothing.
+    """
+    account = register()
+    room = _make_room(client, account)
+    session.execute(
+        text("UPDATE users SET is_demo = true WHERE id = :u"), {"u": account["user_id"]}
+    )
+    session.flush()
+
+    # Profile edits stay blocked.
+    assert (
+        client.put(
+            "/api/profile/onboarding", json={"artist_ids": [1]}, headers=account["headers"]
+        ).status_code
+        == 403
+    )
+    # Creating a room stays blocked.
+    assert (
+        client.post(
+            "/api/rooms",
+            json={"name": "Another", "mode": "consensus"},
+            headers=account["headers"],
+        ).status_code
+        == 403
+    )
+    # Generating is allowed through the permission layer: a 422 here means the
+    # fixture catalogue was too small, not that the request was refused.
+    generated = client.post(f"/api/rooms/{room['id']}/playlist?k=3", headers=account["headers"])
+    assert generated.status_code != 403

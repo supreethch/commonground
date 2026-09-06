@@ -294,7 +294,10 @@ def _serialise_playlist(session: Session, playlist: Playlist) -> PlaylistRespons
 async def generate_playlist(
     room_id: uuid.UUID,
     session: SessionDep,
-    user: WritableUser,
+    # CurrentUser, not WritableUser: generating a playlist is the demo. It
+    # writes a playlist row, not a change to anyone's profile, so a shared demo
+    # login cannot spoil the next visitor's view by using it.
+    user: CurrentUser,
     k: int = Query(default=20, ge=1, le=50),
 ) -> PlaylistResponse:
     room = _require_member(session, room_id, user)
@@ -423,7 +426,9 @@ async def cast_vote(
     track_id: int,
     body: VoteRequest,
     session: SessionDep,
-    user: WritableUser,
+    # Also CurrentUser: a vote is one row per member per track, and voting is
+    # half of what a visitor comes to try.
+    user: CurrentUser,
 ) -> dict:
     _require_member(session, room_id, user)
 

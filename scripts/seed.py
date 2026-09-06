@@ -192,8 +192,61 @@ def seed(conn: psycopg.Connection, password: str, reset: bool) -> dict:
                 "genres_matched": len(tag_ids),
             }
 
+    _seed_demo_room(conn)
     conn.commit()
     return report
+
+
+# The room a recruiter lands in.
+DEMO_ROOM_NAME = "The car"
+DEMO_ROOM_MODE = "fair_rotation"
+
+
+def _seed_demo_room(conn: psycopg.Connection) -> None:
+    """Put every persona in one room.
+
+    Demo accounts are read-only, so they cannot create a room or accept an
+    invite themselves -- which meant signing in as Alex showed an empty rooms
+    list and none of the group behaviour this project is about. The room is
+    seeded directly instead, owned by the first persona, containing all six.
+
+    Fair rotation on purpose: it is the mode whose effect is visible in a single
+    screenshot, because consecutive tracks are picked for different people.
+    """
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT id FROM users WHERE email = ANY(%s) ORDER BY display_name",
+            ([p.email for p in PERSONAS],),
+        )
+        member_ids = [row[0] for row in cur.fetchall()]
+        if len(member_ids) < 2:
+            return
+
+        cur.execute(
+            """
+            INSERT INTO rooms (name, owner_id, mode)
+            SELECT %s, %s, %s
+            WHERE NOT EXISTS (SELECT 1 FROM rooms WHERE name = %s AND owner_id = %s)
+            RETURNING id
+            """,
+            (DEMO_ROOM_NAME, member_ids[0], DEMO_ROOM_MODE, DEMO_ROOM_NAME, member_ids[0]),
+        )
+        row = cur.fetchone()
+        if row is None:
+            cur.execute(
+                "SELECT id FROM rooms WHERE name = %s AND owner_id = %s",
+                (DEMO_ROOM_NAME, member_ids[0]),
+            )
+            row = cur.fetchone()
+        room_id = row[0]
+
+        for index, member_id in enumerate(member_ids):
+            cur.execute(
+                "INSERT INTO room_members (room_id, user_id, role) VALUES (%s, %s, %s) "
+                "ON CONFLICT DO NOTHING",
+                (room_id, member_id, "owner" if index == 0 else "member"),
+            )
+        print(f"\ndemo room '{DEMO_ROOM_NAME}' ({DEMO_ROOM_MODE}) with {len(member_ids)} members")
 
 
 def main(argv: list[str] | None = None) -> int:
