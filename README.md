@@ -10,12 +10,14 @@ person is quietly driving the whole hour, and whether anyone is being made to si
 through something they have explicitly said they hate — and tells you, per track,
 in a sentence, why it is there.
 
-> **Status: milestone 2 of 6 — foundation.** No live demo and no UI yet. What
-> works today: real signup and login, Spotify-free taste onboarding against a
-> catalogue built from CC0 sources, listening-history import for three export
-> formats, and six seeded demo accounts with deliberately conflicting taste. The
-> recommender itself lands in M3 and M4. This section will keep saying exactly
-> where the project is.
+> **Status: milestone 3 of 6 — the individual recommender works and is
+> measured.** No live demo and no UI yet. What works today: real signup and
+> login, Spotify-free onboarding, listening-history import for three export
+> formats, and a hybrid recommender evaluated against four baselines on 2,248
+> real ListenBrainz users — **3.1× the precision of a popularity baseline while
+> recommending 69× more of the catalogue** ([measurements](docs/measurements.md)).
+> The group ranking, fairness metrics and the three modes are M4. This section
+> will keep saying exactly where the project is.
 
 ## Why this is not a wrapper around a language model
 
@@ -53,6 +55,7 @@ also means the evaluation compares them on identical machinery.
 
 [Architecture](docs/architecture.md) ·
 [Recommendation engine](docs/recommender.md) ·
+[**Measurements**](docs/measurements.md) ·
 [Database schema](db/001_init.sql) ·
 [Evaluation plan](docs/evaluation.md) ·
 [Data sources and licences](docs/data-sources.md) ·
@@ -90,16 +93,20 @@ contain a number that was not produced by a command in this repository.
 
 | | Measured 2026-09-06 |
 | --- | --- |
-| Python tests passing | 94 (against both a populated and an empty catalogue) |
-| Tables in the schema | 21 |
-| Catalogue: recordings / artists | 1,637 / 588 |
-| Artists with genre tags | 211 of 588 (top 220 by listen count) |
-| Distinct genres / tags | 295 / 610 |
+| Python tests passing | 146 (against both a populated and an empty catalogue) |
+| Recommender dataset | 2,248 users, 12,273 items, 98,960 interactions (0.36% dense) |
+| Best model P@10 / NDCG@10 | 0.0624 / 0.1136 (hybrid of item-KNN + ALS) |
+| Popularity baseline P@10 / NDCG@10 | 0.0199 / 0.0412 |
+| Catalogue coverage: best vs popularity | 39.8% vs 0.55% |
+| Full 8-model evaluation | 17.3s |
+| Onboarding catalogue | 1,637 recordings / 588 artists, 211 tagged |
+| ListenBrainz dump: MBID coverage | 1.9% of listens carry a recording MBID |
 | MusicBrainz canonical dump | 2.2 GiB compressed |
-| ListenBrainz daily incremental dump | 370.6 MiB compressed |
-| ListenBrainz sitewide stats ceiling | 1,000 rows per time range; offsets past it return empty |
-| MusicBrainz genre lookups | 193 fetched, 0 failed, ~9s each under throttling |
-| MusicBrainz recording-level URL relations | 1 of 10 recordings in a spot check had any |
+| ListenBrainz daily incremental dump | 370.6 MiB compressed (4.3 GB of JSON) |
+
+Full detail, including what these numbers are *not*, in
+[docs/measurements.md](docs/measurements.md) — which is generated from
+`eval/results/`, never typed.
 
 Two of those rows changed the design.
 
@@ -115,10 +122,17 @@ subset, leaving the artists every onboarding screen shows untagged. It now walks
 most-listened first, so any prefix of the work is the most useful prefix
 available.
 
-**Known gap:** the catalogue comes from ListenBrainz's most-played recordings,
-so it skews hard to pop and rock. The seeded ambient/classical persona matches
-only 6 artists against 94 for the indie-rock one. That is a real limitation of
-this data source, and M3 addresses it by building from the listen dumps instead.
+**Known gap:** the onboarding catalogue comes from ListenBrainz's most-played
+recordings, so it skews hard to pop and rock — the seeded ambient/classical
+persona matches only 6 artists against 94 for the indie-rock one. M3 works
+around this for the recommender by building its dataset from the listen dumps
+instead, where item identity is the normalised artist and track name.
+
+**A negative result worth stating:** the fitted weight search gave the
+content-based model and the popularity prior **zero** weight. Content features
+are thin here — a third of items have genre tags, the rest carry only artist
+identity, which collaborative filtering already captures. It is reported rather
+than tuned away.
 
 ## Licence and data
 
