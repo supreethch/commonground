@@ -63,6 +63,7 @@ def group_facts(
     member_genres: list[set[str]] | None = None,
     familiar: list[bool] | None = None,
     tau_veto: float = 0.35,
+    genre_frequency: dict[str, float] | None = None,
 ) -> dict:
     """Exact counts about this track and this group.
 
@@ -86,7 +87,18 @@ def group_facts(
             if count:
                 shared[genre] = count
         if shared:
-            top = max(shared.items(), key=lambda kv: (kv[1], kv[0]))
+            # Most members first, then the *rarest* genre among those tied.
+            #
+            # Without the rarity tiebreak every reason in a rock-heavy
+            # catalogue reads "everyone likes rock", which is true and tells the
+            # reader nothing: a genre two thirds of the catalogue carries
+            # distinguishes no track from any other. "everyone likes shoegaze"
+            # is the same sentence carrying actual information.
+            frequency = genre_frequency or {}
+            top = max(
+                shared.items(),
+                key=lambda kv: (kv[1], -frequency.get(kv[0], 0.0), kv[0]),
+            )
             facts["top_genre"] = top[0]
             facts["top_genre_members"] = top[1]
             facts["shared_genres"] = shared
@@ -107,6 +119,7 @@ def explain(
     familiar: list[bool] | None = None,
     tau_veto: float = 0.35,
     max_clauses: int = 3,
+    genre_frequency: dict[str, float] | None = None,
 ) -> Explanation:
     """Render one track's reason.
 
@@ -121,6 +134,7 @@ def explain(
         member_genres=member_genres,
         familiar=familiar,
         tau_veto=tau_veto,
+        genre_frequency=genre_frequency,
     )
     contributions = track.contributions
     n_members = max(len(member_names), 1)
