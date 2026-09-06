@@ -1,0 +1,36 @@
+[project]
+name = "commonground-engine"
+version = "0.1.0"
+description = "Group music recommendation: hybrid scoring, group aggregation, fairness-aware ranking"
+requires-python = ">=3.12"
+
+# Deliberately narrow. The engine takes arrays and dataframes and returns
+# rankings; it never opens a socket or a database connection. Anything that
+# would pull FastAPI, SQLAlchemy or an HTTP client in here is a layering
+# mistake -- tests/test_engine_isolation.py enforces that.
+dependencies = [
+    "numpy>=2.1",
+    "pandas>=2.2",
+    "scipy>=1.14",
+    "scikit-learn>=1.5",
+    # Conjugate-gradient ALS for implicit feedback. Chosen over hand-rolled MF
+    # because the interesting engineering here is group aggregation, not
+    # re-deriving a solver -- and over TensorFlow/PyTorch because a CPU-only
+    # matrix factorisation on a laptop-sized catalogue does not need autograd
+    # and a ~600MB dependency would not fit the free-tier deploy.
+    "implicit>=0.7.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3",
+    "hypothesis>=6.112",
+    "ruff>=0.7",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["commonground_engine"]
