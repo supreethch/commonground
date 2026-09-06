@@ -4,9 +4,9 @@
 # Postgres is reachable, so CI is the only place guaranteed to run them -- a
 # service container is what stops that skip from silently becoming permanent.
 #
-# The frontend jobs (vitest, tsc, Playwright) join this file in M5, when there
-# is a frontend to run them against. A workflow with a job that always fails
-# gets ignored within a week, which is worse than not having the job.
+# Playwright end-to-end joins this file in M6, when there is a deployment to run
+# it against. A workflow with a job that always fails gets ignored within a
+# week, which is worse than not having the job.
 
 name: ci
 
@@ -88,3 +88,21 @@ jobs:
         with:
           python-version: "3.12"
       - run: python scripts/verify_sources.py --check
+
+  web:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+      - run: npm ci
+      # tsc runs as part of build, so a type error fails here rather than in a
+      # deploy. Tests are separate so a failure says which of the two broke.
+      - run: npm run build
+      - run: npm test

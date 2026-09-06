@@ -28,3 +28,7 @@ models/
 # Playwright
 test-results/
 playwright-report/
+
+# Vite build output and the local launch config
+apps/web/dist/
+.claude/

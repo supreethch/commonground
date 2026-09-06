@@ -1,0 +1,115 @@
+@import "tailwindcss";
+
+/* CommonGround's visual point of view.
+ *
+ * Warm near-black rather than the blue-grey every dashboard defaults to, and a
+ * single amber accent used sparingly -- on the thing being acted on, never as
+ * decoration. No gradients, no glow, no colour used twice for two meanings.
+ *
+ * The one deliberate typographic move: explanations are set in a serif. They
+ * are the product's voice -- the sentence saying why a track is here -- and
+ * setting them apart from the interface chrome is the difference between a
+ * caption and a statement.
+ */
+
+@theme {
+  --color-ink-950: #100e0c;
+  --color-ink-900: #16130f;
+  --color-ink-850: #1c1815;
+  --color-ink-800: #23201c;
+  --color-ink-700: #322d27;
+  --color-ink-600: #4a433a;
+  --color-ink-500: #6d6459;
+  --color-ink-400: #948b7e;
+  --color-ink-300: #bdb4a6;
+  --color-ink-100: #f0ebe2;
+
+  /* One accent. Amber reads as warmth and playback without borrowing the
+   * purple that every AI product ships with. */
+  --color-amber-400: #e9a93c;
+  --color-amber-500: #d4922a;
+  --color-amber-300: #f3c476;
+
+  /* Vote colours are muted on purpose: a room full of saturated green and red
+   * looks like a trading terminal, not a playlist. */
+  --color-up-400: #7fb069;
+  --color-down-400: #c96f5b;
+
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", serif;
+
+  --radius-panel: 10px;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background: var(--color-ink-950);
+  color: var(--color-ink-100);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Scores, counts and positions are compared down a column, so they need to line
+ * up. Proportional digits make a list of numbers look ragged. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+.reason {
+  font-family: var(--font-serif);
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--color-ink-300);
+}
+
+/* A focus ring that is visible on a dark surface without shouting. Keyboard
+ * users get it; pointer users do not. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-amber-400);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@keyframes cg-rise {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.rise {
+  animation: cg-rise 0.24s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+@keyframes cg-pulse {
+  0% {
+    background-color: color-mix(in oklab, var(--color-amber-400) 22%, transparent);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+/* A vote landing from another member should be noticed without stealing focus.
+ * One slow fade, not a bounce. */
+.just-changed {
+  animation: cg-pulse 1.1s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise,
+  .just-changed {
+    animation: none;
+  }
+}
