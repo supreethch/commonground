@@ -57,15 +57,54 @@ and retries, honouring `Retry-After`.
 Running two copies of the build at once makes it dramatically worse: with a
 second client competing, individual requests measured 13–20 seconds.
 
-## Running the API
+## Demo data
 
 ```bash
-./.venv/bin/uvicorn commonground_api.main:app --reload --port 8000
+./.venv/bin/python scripts/seed.py           # six personas and a room they share
+./.venv/bin/python scripts/seed_listeners.py # 1,200 listeners, so CF has signal
 ```
 
-- <http://localhost:8000/docs> — interactive API docs
-- <http://localhost:8000/health> — reports whether the database is reachable and
-  which broadcaster is in use
+`seed_listeners.py` is not optional if you want the recommendations to mean
+anything. With only the six personas there are eight histories in the database,
+and collaborative filtering over eight histories learns nothing — every
+recommendation collapses to popularity. It maps real ListenBrainz users onto
+catalogue recordings and takes about three seconds.
+
+`seed.py` also creates **The car**, a room containing all six personas. Demo
+accounts cannot accept an invite, so without a seeded room signing in as the
+demo user shows an empty list and none of the group behaviour.
+
+## Running it
+
+```bash
+./.venv/bin/uvicorn commonground_api.main:app --reload --port 8010   # API
+npm install --prefix apps/web && npm run dev --prefix apps/web        # UI
+```
+
+- <http://localhost:5173> — the app
+- <http://localhost:8010/docs> — interactive API docs
+- <http://localhost:8010/health> — whether the database is reachable and which
+  broadcaster is in use
+
+Port 8010 rather than 8000 because 8000 is a common default and was already
+taken on the machine this was built on. `VITE_PROXY_TARGET` overrides what the
+dev server proxies to.
+
+The Vite dev server proxies `/api` **including WebSocket upgrades**. Without
+`ws: true` in the proxy config the room socket 404s in development and the room
+silently never goes live, which looks like a backend fault.
+
+## The frontend
+
+```bash
+npm run build --prefix apps/web    # tsc then vite build
+npm test --prefix apps/web         # vitest
+```
+
+React 19, Vite, TypeScript and Tailwind 4. Hash routing rather than a router
+library: there are five screens, and hash routes mean the built frontend is a
+static bundle needing no server rewrite rule, which is what lets it sit on a
+free static host next to an API on another origin.
 
 ## Tests
 

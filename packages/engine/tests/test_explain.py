@@ -117,6 +117,18 @@ def test_the_genre_clause_reports_the_real_count() -> None:
     assert "2 members like indie rock" in result.sentence
 
 
+def test_a_solo_room_is_addressed_in_the_second_person() -> None:
+    """ "1 member likes indie rock" is how a system talks about a person."""
+    result = explain(
+        track({"group_score": 0.8}, [0.9]),
+        member_names=["Alex"],
+        item_genres=["indie rock"],
+        member_genres=[{"indie rock"}],
+    )
+    assert "you like indie rock" in result.sentence
+    assert "1 member" not in result.sentence
+
+
 def test_a_genre_everyone_shares_is_phrased_as_everyone() -> None:
     """And with the right verb: an earlier version emitted "everyone like"."""
     result = explain(

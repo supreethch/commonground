@@ -48,7 +48,11 @@ def _fmt_members(count: int, total: int) -> tuple[str, str]:
     subject is cheaper than a template per case, and an earlier version that
     hardcoded "like" produced "everyone like pop rock" in real output.
     """
-    if count == total and total > 1:
+    if total == 1:
+        # A room of one. "1 member likes indie rock" is how a system talks about
+        # a person; "you like indie rock" is how a person is talked to.
+        return "you", "like"
+    if count == total:
         return "everyone", "likes"
     if count == 1:
         return "1 member", "likes"
@@ -147,7 +151,7 @@ def explain(
         if facts.get("top_genre_members"):
             who, verb = _fmt_members(facts["top_genre_members"], n_members)
             candidates.append((magnitude, f"{who} {verb} {facts['top_genre']}", "group_score"))
-        elif facts.get("best_member"):
+        elif facts.get("best_member") and len(member_names) > 1:
             candidates.append(
                 (
                     magnitude,
@@ -155,13 +159,22 @@ def explain(
                     "group_score",
                 )
             )
+        elif len(member_names) == 1:
+            # With one member every track is trivially "closest to" them, so the
+            # clause carries no information. Say what the ranking actually did.
+            candidates.append((magnitude, "it scores well against your profile", "group_score"))
 
     if contributions.get("novelty_bonus"):
-        clause = (
-            "it introduces an artist new to everyone"
-            if facts.get("new_to_everyone")
-            else "it's less familiar than the rest"
-        )
+        if facts.get("new_to_everyone"):
+            # "new to everyone" reads as a group fact; in a room of one the
+            # honest phrasing is simply "new to you".
+            clause = (
+                "it introduces an artist new to you"
+                if len(member_names) == 1
+                else "it introduces an artist new to everyone"
+            )
+        else:
+            clause = "it's less familiar than the rest"
         candidates.append((abs(contributions["novelty_bonus"]), clause, "novelty_bonus"))
 
     if contributions.get("fairness_bonus"):
@@ -170,7 +183,9 @@ def explain(
         # satisfaction so far, so naming the per-track minimum would describe a
         # quantity that did not move the score.
         served = track.served_member
-        if served is not None and served < len(member_names):
+        # Not in a solo room: "it's your turn to be served" describes a rotation
+        # between people, and with one member there is nobody to rotate with.
+        if served is not None and served < len(member_names) and len(member_names) > 1:
             candidates.append(
                 (
                     abs(contributions["fairness_bonus"]),
@@ -209,7 +224,7 @@ def explain(
     # The veto note is a statement about the hard filter, not a scored term, so
     # it is appended rather than competing for a clause slot.
     veto_note = ""
-    if len(track.member_scores) > 1 and facts["min_score"] >= tau_veto:
+    if len(member_names) > 1 and len(track.member_scores) > 1 and facts["min_score"] >= tau_veto:
         veto_note = " without strongly conflicting with anyone's dislikes"
 
     if not clauses:

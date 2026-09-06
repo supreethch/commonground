@@ -290,6 +290,34 @@ class RecommenderService:
 
         return np.vstack(scores), seen
 
+    def _stated_genres(
+        self, session: Session, member_ids: list[uuid.UUID]
+    ) -> dict[uuid.UUID, set[str]]:
+        """Genres a member chose at onboarding, directly or via an artist."""
+        if not member_ids:
+            return {}
+        rows = session.execute(
+            text(
+                """
+                SELECT pt.user_id, t.name
+                FROM profile_tags pt
+                JOIN tags t ON t.id = pt.tag_id
+                WHERE pt.user_id = ANY(:members) AND t.is_genre
+                UNION
+                SELECT pa.user_id, t.name
+                FROM profile_artists pa
+                JOIN artist_tags at ON at.artist_id = pa.artist_id
+                JOIN tags t ON t.id = at.tag_id
+                WHERE pa.user_id = ANY(:members) AND t.is_genre
+                """
+            ),
+            {"members": list(member_ids)},
+        ).all()
+        found: dict[uuid.UUID, set[str]] = {}
+        for user_id, genre in rows:
+            found.setdefault(user_id, set()).add(genre)
+        return found
+
     def generate(
         self,
         session: Session,
@@ -389,13 +417,23 @@ class RecommenderService:
         # quoting a UUID at someone. Falls back to the id only when the caller
         # did not supply names.
         names = member_names or [str(m) for m in member_ids]
+        # Genres a member is known to like, from what they played *and* what they
+        # said at onboarding.
+        #
+        # Listens alone were not enough: a user who has just onboarded has none,
+        # so the genre clause never fired and every reason in their playlist fell
+        # back to the same "closest to your taste" sentence. That is exactly the
+        # user most likely to be looking at this, and twenty identical reasons is
+        # worse than no reason at all.
+        stated = self._stated_genres(session, member_ids)
         member_genres = [
             {
                 genre
                 for item in known
                 for genre in snapshot.item_genres.get(int(snapshot.recording_ids[item]), [])
             }
-            for known in seen
+            | stated.get(member, set())
+            for member, known in zip(member_ids, seen, strict=True)
         ]
 
         tracks: list[GeneratedTrack] = []
