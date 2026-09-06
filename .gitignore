@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Node
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Environment
+.env
+.env.local
+.env.production
+
+# Built datasets and model artefacts.
+#
+# Nothing under data/ is redistributed: the MusicBrainz supplementary tables we
+# derive genre features from are CC BY-NC-SA, and shipping a derived matrix
+# would put a ShareAlike obligation on this repository. scripts/build_catalog.py
+# rebuilds everything here from upstream dumps. See docs/data-sources.md.
+data/
+models/
+
+# Playwright
+test-results/
+playwright-report/

@@ -1,0 +1,52 @@
+# Local development stack.
+#
+#   docker compose up -d
+#   docker compose ps        # both services should report (healthy)
+#
+# Host ports are 5434 and 6380 rather than the defaults, because a2transit
+# (5432/6379) and pulse (5433) may be running on the same machine. Override with
+# CG_DB_PORT / CG_REDIS_PORT if those clash too. Inside the compose network the
+# services still listen on their standard ports.
+#
+# Nothing here needs a paid plan or a licence key. In production Postgres is
+# Neon's free tier and Redis is absent entirely -- the single free-tier API
+# instance uses the in-process broadcaster. See docs/deployment.md.
+
+name: commonground
+
+services:
+  db:
+    # Plain Postgres: nothing in this project is geographic, so unlike a2transit
+    # there is no PostGIS requirement. 17 matches what Neon serves.
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: commonground
+      POSTGRES_PASSWORD: commonground
+      POSTGRES_DB: commonground
+    ports:
+      - "${CG_DB_PORT:-5434}:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U commonground -d commonground"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  redis:
+    image: redis:7-alpine
+    # Redis carries room events between API processes and caches candidate sets.
+    # Both are rebuildable, so persistence buys nothing and appendonly writes
+    # just add disk churn.
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    ports:
+      - "${CG_REDIS_PORT:-6380}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  db_data:

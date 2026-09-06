@@ -1,0 +1,16 @@
+# Not an installable package -- there is no code at the repository root. This
+# file exists so pytest and ruff find one configuration for the whole Python
+# side regardless of which directory they are invoked from.
+#
+# The installable packages are packages/engine and apps/api.
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "packages/engine/tests", "apps/api/tests"]
+# Tests that reach the public internet or a live database are opt-in, so the
+# suite stays runnable offline and in a CI job with no services attached.
+markers = [
+    "network: test requires live internet access to an upstream data source",
+    "db: test requires a running Postgres (skipped automatically when absent)",
+    "slow: long-running test, deselected by default (run with `pytest -m slow`)",
+]
+addopts = "-m 'not network and not slow'"
