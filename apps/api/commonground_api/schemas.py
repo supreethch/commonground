@@ -144,3 +144,94 @@ class ImportResultResponse(ImportResponse):
     skipped: dict[str, int] = Field(default_factory=dict)
     warnings: list[str] = Field(default_factory=list)
     match_rate: float
+
+
+# --------------------------------------------------------------------- rooms --
+
+MODES = ("consensus", "discovery", "fair_rotation")
+
+
+class RoomCreateRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=80)
+    mode: str = Field(default="consensus")
+
+    @field_validator("name")
+    @classmethod
+    def _strip(cls, value: str) -> str:
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("a room needs a name")
+        return stripped
+
+    @field_validator("mode")
+    @classmethod
+    def _known_mode(cls, value: str) -> str:
+        if value not in MODES:
+            raise ValueError(f"mode must be one of {list(MODES)}")
+        return value
+
+
+class RoomMemberResponse(BaseModel):
+    user_id: uuid.UUID
+    display_name: str
+    role: str
+    joined_at: datetime
+    # Surfaced because a member who has not onboarded is scored from priors
+    # rather than from a prediction, and the room should be able to say so.
+    onboarded: bool
+
+
+class RoomResponse(BaseModel):
+    id: uuid.UUID
+    name: str
+    mode: str
+    status: str
+    owner_id: uuid.UUID
+    created_at: datetime
+    member_count: int
+
+
+class RoomDetailResponse(RoomResponse):
+    members: list[RoomMemberResponse]
+
+
+class InviteResponse(BaseModel):
+    """The token is returned exactly once, at creation. Only its hash is stored."""
+
+    token: str
+    room_id: uuid.UUID
+    expires_at: datetime
+    max_uses: int
+
+
+class PlaylistTrackResponse(BaseModel):
+    id: int
+    position: int
+    recording_id: int
+    title: str
+    artist: str
+    listen_url: str | None
+    group_score: float
+    member_scores: dict
+    contributions: dict
+    explanation: dict
+    votes: int
+
+
+class PlaylistResponse(BaseModel):
+    id: uuid.UUID
+    room_id: uuid.UUID
+    mode: str
+    engine_version: str
+    seed: int
+    params: dict
+    generated_at: datetime
+    duration_ms: int | None
+    member_ids: list[str]
+    tracks: list[PlaylistTrackResponse]
+
+
+class VoteRequest(BaseModel):
+    # 0 retracts a vote. Modelling "no opinion" as a value rather than as a
+    # DELETE keeps one endpoint and one permission check for every vote change.
+    value: int = Field(ge=-1, le=1)

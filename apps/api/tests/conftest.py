@@ -12,6 +12,7 @@ offline -- the engine and parser tests carry on regardless.
 
 from __future__ import annotations
 
+import contextlib
 import os
 import subprocess
 import sys
@@ -23,6 +24,7 @@ import pytest
 
 psycopg = pytest.importorskip("psycopg")
 
+from commonground_api.api.rooms import get_socket_session_factory  # noqa: E402
 from commonground_api.config import Settings  # noqa: E402
 from commonground_api.db import get_session, normalise_url  # noqa: E402
 from commonground_api.deps import get_settings  # noqa: E402
@@ -96,6 +98,16 @@ def client(session: Session, settings: Settings) -> Iterator[TestClient]:
     app = create_app()
     app.dependency_overrides[get_session] = lambda: session
     app.dependency_overrides[get_settings] = lambda: settings
+
+    # The websocket handshake opens its own short-lived session so it does not
+    # hold a pooled connection for the socket's lifetime. Point that factory at
+    # the test transaction, or the handshake cannot see users this test created
+    # and every socket test fails as "not authenticated".
+    @contextlib.contextmanager
+    def _test_session():
+        yield session
+
+    app.dependency_overrides[get_socket_session_factory] = lambda: _test_session
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()
@@ -113,10 +125,13 @@ def register(client: TestClient):
         )
         assert response.status_code == 201, response.text
         body = response.json()
+        headers = {"Authorization": f"Bearer {body['access_token']}"}
+        me = client.get("/api/auth/me", headers=headers)
         return {
             "email": email,
             "password": password,
-            "headers": {"Authorization": f"Bearer {body['access_token']}"},
+            "headers": headers,
+            "user_id": me.json()["id"],
             **body,
         }
 
