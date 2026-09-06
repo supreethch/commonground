@@ -1,0 +1,85 @@
+# Lint and tests on every push and pull request.
+#
+# The frontend jobs (vitest, tsc, Playwright) join this file in M5, when there
+# is a frontend to run them against. A workflow with a job that always fails
+# gets ignored within a week, which is worse than not having the job.
+
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install ruff==0.16.6
+      - run: ruff check .
+      - run: ruff format --check .
+
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        # Matches the compose stack and what Neon serves.
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: commonground
+          POSTGRES_PASSWORD: commonground
+          POSTGRES_DB: commonground
+        ports:
+          - 5432:5432
+        # Without a health check the job races the database and fails
+        # intermittently, which trains everyone to re-run CI instead of reading it.
+        options: >-
+          --health-cmd "pg_isready -U commonground -d commonground"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://commonground:commonground@localhost:5432/commonground
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: |
+          pip install -e "packages/engine[dev]"
+          pip install "psycopg[binary]>=3.2" pytest-asyncio
+
+      - name: Tests
+        # Network-marked tests are excluded by the default addopts. CI must not
+        # depend on MetaBrainz being up: an upstream outage should not turn every
+        # pull request red.
+        run: pytest -q
+
+  sources:
+    # Checks the upstream dumps are still where docs/data-sources.md says they
+    # are, and that their licences have not changed under us. Scheduled rather
+    # than blocking, because an upstream being down is not a reason to stop
+    # merging code.
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event_name == 'schedule'
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python scripts/verify_sources.py --check
