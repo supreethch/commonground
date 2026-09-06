@@ -1,0 +1,42 @@
+{
+  "name": "individual",
+  "dataset": "data/datasets/lb-day",
+  "seed": 20260906,
+  "ks": [
+    5,
+    10,
+    20
+  ],
+  "report_ks": [
+    10
+  ],
+  "k_neighbours": 200,
+  "max_eval_users": 1500,
+  "split": {
+    "n": 5,
+    "min_train_items": 5
+  },
+  "als": {
+    "factors": 64,
+    "regularization": 0.05,
+    "iterations": 20,
+    "alpha": 40.0
+  },
+  "hybrids": {
+    "hybrid-knn-als": {
+      "item-knn": 0.5,
+      "als": 0.5
+    },
+    "hybrid-full": {
+      "item-knn": 0.45,
+      "als": 0.35,
+      "content-knn": 0.15,
+      "popularity": 0.05
+    },
+    "hybrid-fitted": {
+      "item-knn": 0.15,
+      "als": 0.35
+    }
+  },
+  "_hybrid_fitted_note": "Weights from scripts/sweep_weights.py, grid-searched on a validation split nested inside the training data. The sweep never saw this test split. It assigned content-knn and popularity zero weight in all of its top 8 results."
+}

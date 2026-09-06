@@ -1,0 +1,432 @@
+{
+  "selected_on": "ndcg@10",
+  "note": "Fitted on a validation split nested inside the training data. The test split used by run_eval.py was not seen here.",
+  "grid": [
+    0.0,
+    0.15,
+    0.35,
+    0.5,
+    0.65
+  ],
+  "validation_users": 2248,
+  "users_evaluated": 300,
+  "best": {
+    "weights": {
+      "item-knn": 0.15,
+      "als": 0.35,
+      "content-knn": 0.0,
+      "popularity": 0.0
+    },
+    "metrics": {
+      "precision@10": 0.076667,
+      "recall@10": 0.153333,
+      "ndcg@10": 0.1344,
+      "coverage@10": 0.153589,
+      "novelty@10": 12.357748,
+      "exposure_gini@10": 0.894044
+    }
+  },
+  "combinations_evaluated": 624,
+  "top": [
+    {
+      "weights": {
+        "item-knn": 0.15,
+        "als": 0.35,
+        "content-knn": 0.0,
+        "popularity": 0.0
+      },
+      "metrics": {
+        "precision@10": 0.076667,
+        "recall@10": 0.153333,
+        "ndcg@10": 0.1344,
+        "coverage@10": 0.153589,
+        "novelty@10": 12.357748,
+        "exposure_gini@10": 0.894044
+      }
+    },
+    {
+      "weights": {
+        "item-knn": 0.35,
+        "als": 0.65,
+        "content-knn": 0.0,
+        "popularity": 0.0
+      },
+      "metrics": {
+        "precision@10": 0.075667,
+        "recall@10": 0.151333,
+        "ndcg@10": 0.134204,
+        "coverage@10": 0.155137,
+        "novelty@10": 12.387768,
+        "exposure_gini@10": 0.892695
+      }
+    },
+    {
+      "weights": {
+        "item-knn": 0.5,
+        "als": 0.65,
+        "content-knn": 0.0,
+        "popularity": 0.0
+      },
+      "metrics": {
+        "precision@10": 0.076,
+        "recall@10": 0.152,
+        "ndcg@10": 0.13413,
+        "coverage@10": 0.155219,
+        "novelty@10": 12.442885,
+        "exposure_gini@10": 0.892822
+      }
+    },
+    {
+      "weights": {
+        "item-knn": 0.15,
+        "als": 0.65,
+        "content-knn": 0.0,
+        "popularity": 0.0
+      },
+      "metrics": {
+        "precision@10": 0.077,
+        "recall@10": 0.154,
+        "ndcg@10": 0.134074,
+        "coverage@10": 0.151226,
+        "novelty@10": 12.281671,
+        "exposure_gini@10": 0.895654
+      }
+    },
+    {
+      "weights": {
+        "item-knn": 0.35,
+        "als": 0.5,
+        "content-knn": 0.0,
+        "popularity": 0.0
+      },
+      "metrics": {
+        "precision@10": 0.076,
+        "recall@10": 0.152,
+        "ndcg@10": 0.133969,
+        "coverage@10": 0.155056,
+        "novelty@10": 12.431674,
+        "exposure_gini@10": 0.892878
+      }
+    },
+    {
+      "weights": {
+        "item-knn": 0.35,
+        "als": 0.35,
+        "content-knn": 0.0,
+        "popularity": 0.0
+      },
+      "metrics": {
+        "precision@10": 0.076,
+        "recall@10": 0.152,
+        "ndcg@10": 0.133286,
+        "coverage@10": 0.154811,
+        "novelty@10": 12.490006,
+        "exposure_gini@10": 0.893414
+      }
+    },
+    {
+      "weights": {
+        "item-knn": 0.15,
+        "als": 0.5,
+        "content-knn": 0.0,
+        "popularity": 0.0
+      },
+      "metrics": {
+        "precision@10": 0.076,
+        "recall@10": 0.152,
+        "ndcg@10": 0.132962,
+        "coverage@10": 0.152611,
+        "novelty@10": 12.315489,
+        "exposure_gini@10": 0.894596
+      }
+    },
+    {
+      "weights": {
+        "item-knn": 0.15,
+        "als": 0.15,
+        "content-knn": 0.0,
+        "popularity": 0.0
+      },
+      "metrics": {
+        "precision@10": 0.075333,
+        "recall@10": 0.150667,
+        "ndcg@10": 0.132521,
+        "coverage@10": 0.154567,
+        "novelty@10": 12.489216,
+        "exposure_gini@10": 0.893715
+      }
+    },
+    {
+      "weights": {
+        "item-knn": 0.5,
+        "als": 0.15,
+        "content-knn": 0.0,
+        "popularity": 0.0
+      },
+      "metrics": {
+        "precision@10": 0.073,
+        "recall@10": 0.146,
+        "ndcg@10": 0.132513,
+        "coverage@10": 0.158722,
+        "novelty@10": 12.704861,
+        "exposure_gini@10": 0.890444
+      }
+    },
+    {
+      "weights": {
+        "item-knn": 0.5,
+        "als": 0.5,
+        "content-knn": 0.0,
+        "popularity": 0.0
+      },
+      "metrics": {
+        "precision@10": 0.075667,
+        "recall@10": 0.151333,
+        "ndcg@10": 0.132407,
+        "coverage@10": 0.154485,
+        "novelty@10": 12.489039,
+        "exposure_gini@10": 0.893792
+      }
+    },
+    {
+      "weights": {
+        "item-knn": 0.65,
+        "als": 0.65,
+        "content-knn": 0.0,
+        "popularity": 0.0
+      },
+      "metrics": {
+        "precision@10": 0.075333,
+        "recall@10": 0.150667,
+        "ndcg@10": 0.132215,
+        "coverage@10": 0.154648,
+        "novelty@10": 12.489609,
+        "exposure_gini@10": 0.89364
+      }
+    },
+    {
+      "weights": {
+        "item-knn": 0.65,
+        "als": 0.15,
+        "content-knn": 0.0,
+        "popularity": 0.0
+      },
+      "metrics": {
+        "precision@10": 0.073333,
+        "recall@10": 0.146667,
+        "ndcg@10": 0.131358,
+        "coverage@10": 0.1597,
+        "novelty@10": 12.755996,
+        "exposure_gini@10": 0.889586
+      }
+    },
+    {
+      "weights": {
+        "item-knn": 0.65,
+        "als": 0.5,
+        "content-knn": 0.0,
+        "popularity": 0.0
+      },
+      "metrics": {
+        "precision@10": 0.073667,
+        "recall@10": 0.147333,
+        "ndcg@10": 0.130718,
+        "coverage@10": 0.154322,
+        "novelty@10": 12.530852,
+        "exposure_gini@10": 0.894232
+      }
+    },
+    {
+      "weights": {
+        "item-knn": 0.5,
+        "als": 0.35,
+        "content-knn": 0.0,
+        "popularity": 0.0
+      },
+      "metrics": {
+        "precision@10": 0.073333,
+        "recall@10": 0.146667,
+        "ndcg@10": 0.129755,
+        "coverage@10": 0.154893,
+        "novelty@10": 12.555234,
+        "exposure_gini@10": 0.893811
+      }
+    },
+    {
+      "weights": {
+        "item-knn": 0.35,
+        "als": 0.15,
+        "content-knn": 0.0,
+        "popularity": 0.0
+      },
+      "metrics": {
+        "precision@10": 0.072,
+        "recall@10": 0.144,
+        "ndcg@10": 0.128949,
+        "coverage@10": 0.15693,
+        "novelty@10": 12.635288,
+        "exposure_gini@10": 0.892159
+      }
+    },
+    {
+      "weights": {
+        "item-knn": 0.65,
+        "als": 0.35,
+        "content-knn": 0.0,
+        "popularity": 0.0
+      },
+      "metrics": {
+        "precision@10": 0.072667,
+        "recall@10": 0.145333,
+        "ndcg@10": 0.128836,
+        "coverage@10": 0.155789,
+        "novelty@10": 12.596089,
+        "exposure_gini@10": 0.893251
+      }
+    },
+    {
+      "weights": {
+        "item-knn": 0.65,
+        "als": 0.65,
+        "content-knn": 0.15,
+        "popularity": 0.0
+      },
+      "metrics": {
+        "precision@10": 0.073,
+        "recall@10": 0.146,
+        "ndcg@10": 0.125375,
+        "coverage@10": 0.144626,
+        "novelty@10": 12.527988,
+        "exposure_gini@10": 0.904115
+      }
+    },
+    {
+      "weights": {
+        "item-knn": 0.35,
+        "als": 0.65,
+        "content-knn": 0.15,
+        "popularity": 0.0
+      },
+      "metrics": {
+        "precision@10": 0.072,
+        "recall@10": 0.144,
+        "ndcg@10": 0.125329,
+        "coverage@10": 0.144138,
+        "novelty@10": 12.460397,
+        "exposure_gini@10": 0.904226
+      }
+    },
+    {
+      "weights": {
+        "item-knn": 0.5,
+        "als": 0.65,
+        "content-knn": 0.15,
+        "popularity": 0.0
+      },
+      "metrics": {
+        "precision@10": 0.071333,
+        "recall@10": 0.142667,
+        "ndcg@10": 0.124816,
+        "coverage@10": 0.1443,
+        "novelty@10": 12.489766,
+        "exposure_gini@10": 0.904294
+      }
+    },
+    {
+      "weights": {
+        "item-knn": 0.65,
+        "als": 0.5,
+        "content-knn": 0.15,
+        "popularity": 0.0
+      },
+      "metrics": {
+        "precision@10": 0.072,
+        "recall@10": 0.144,
+        "ndcg@10": 0.124523,
+        "coverage@10": 0.144789,
+        "novelty@10": 12.562179,
+        "exposure_gini@10": 0.904071
+      }
+    },
+    {
+      "weights": {
+        "item-knn": 0.15,
+        "als": 0.65,
+        "content-knn": 0.15,
+        "popularity": 0.0
+      },
+      "metrics": {
+        "precision@10": 0.072333,
+        "recall@10": 0.144667,
+        "ndcg@10": 0.123366,
+        "coverage@10": 0.14153,
+        "novelty@10": 12.411058,
+        "exposure_gini@10": 0.905835
+      }
+    },
+    {
+      "weights": {
+        "item-knn": 0.0,
+        "als": 0.15,
+        "content-knn": 0.0,
+        "popularity": 0.0
+      },
+      "metrics": {
+        "precision@10": 0.069333,
+        "recall@10": 0.138667,
+        "ndcg@10": 0.122678,
+        "coverage@10": 0.129553,
+        "novelty@10": 11.929528,
+        "exposure_gini@10": 0.916356
+      }
+    },
+    {
+      "weights": {
+        "item-knn": 0.0,
+        "als": 0.35,
+        "content-knn": 0.0,
+        "popularity": 0.0
+      },
+      "metrics": {
+        "precision@10": 0.069333,
+        "recall@10": 0.138667,
+        "ndcg@10": 0.122678,
+        "coverage@10": 0.129553,
+        "novelty@10": 11.929528,
+        "exposure_gini@10": 0.916356
+      }
+    },
+    {
+      "weights": {
+        "item-knn": 0.0,
+        "als": 0.5,
+        "content-knn": 0.0,
+        "popularity": 0.0
+      },
+      "metrics": {
+        "precision@10": 0.069333,
+        "recall@10": 0.138667,
+        "ndcg@10": 0.122678,
+        "coverage@10": 0.129553,
+        "novelty@10": 11.929528,
+        "exposure_gini@10": 0.916356
+      }
+    },
+    {
+      "weights": {
+        "item-knn": 0.0,
+        "als": 0.65,
+        "content-knn": 0.0,
+        "popularity": 0.0
+      },
+      "metrics": {
+        "precision@10": 0.069333,
+        "recall@10": 0.138667,
+        "ndcg@10": 0.122678,
+        "coverage@10": 0.129553,
+        "novelty@10": 11.929528,
+        "exposure_gini@10": 0.916356
+      }
+    }
+  ]
+}

@@ -1,0 +1,227 @@
+{
+  "name": "individual",
+  "config": {
+    "name": "individual",
+    "dataset": "data/datasets/lb-day",
+    "seed": 20260906,
+    "ks": [
+      5,
+      10,
+      20
+    ],
+    "report_ks": [
+      10
+    ],
+    "k_neighbours": 200,
+    "max_eval_users": 1500,
+    "split": {
+      "n": 5,
+      "min_train_items": 5
+    },
+    "als": {
+      "factors": 64,
+      "regularization": 0.05,
+      "iterations": 20,
+      "alpha": 40.0
+    },
+    "hybrids": {
+      "hybrid-knn-als": {
+        "item-knn": 0.5,
+        "als": 0.5
+      },
+      "hybrid-full": {
+        "item-knn": 0.45,
+        "als": 0.35,
+        "content-knn": 0.15,
+        "popularity": 0.05
+      },
+      "hybrid-fitted": {
+        "item-knn": 0.15,
+        "als": 0.35
+      }
+    },
+    "_hybrid_fitted_note": "Weights from scripts/sweep_weights.py, grid-searched on a validation split nested inside the training data. The sweep never saw this test split. It assigned content-knn and popularity zero weight in all of its top 8 results."
+  },
+  "config_hash": "863b0800fd24",
+  "git_sha": "420a389",
+  "engine_version": "0.2.0",
+  "run_at": "2026-09-06T15:34:31Z",
+  "platform": "Darwin arm64 python 3.12.14",
+  "dataset": {
+    "path": "data/datasets/lb-day",
+    "users": 2248,
+    "items": 12273,
+    "interactions": 98960,
+    "density": 0.003586845295621874,
+    "items_with_genre_tags": 4061
+  },
+  "split": {
+    "train_interactions": 87720,
+    "users_evaluated": 2248,
+    "n": 5,
+    "min_train_items": 5
+  },
+  "total_seconds": 17.31,
+  "results": [
+    {
+      "model": "random",
+      "users_evaluated": 1500,
+      "fit_seconds": 0.0,
+      "eval_seconds": 0.202,
+      "metrics": {
+        "coverage@10": 0.697466,
+        "exposure_gini@10": 0.489532,
+        "ndcg@10": 0.000687,
+        "ndcg@20": 0.000919,
+        "ndcg@5": 0.000323,
+        "novelty@10": 15.410444,
+        "precision@10": 0.000533,
+        "precision@20": 0.0004,
+        "precision@5": 0.0004,
+        "recall@10": 0.001067,
+        "recall@20": 0.0016,
+        "recall@5": 0.0004
+      }
+    },
+    {
+      "model": "popularity",
+      "users_evaluated": 1500,
+      "fit_seconds": 0.0,
+      "eval_seconds": 0.126,
+      "metrics": {
+        "coverage@10": 0.005459,
+        "exposure_gini@10": 0.998662,
+        "ndcg@10": 0.041191,
+        "ndcg@20": 0.047408,
+        "ndcg@5": 0.035384,
+        "novelty@10": 7.8274,
+        "precision@10": 0.019933,
+        "precision@20": 0.0136,
+        "precision@5": 0.0292,
+        "recall@10": 0.039867,
+        "recall@20": 0.0544,
+        "recall@5": 0.0292
+      }
+    },
+    {
+      "model": "item-knn",
+      "users_evaluated": 1500,
+      "fit_seconds": 0.252,
+      "eval_seconds": 0.181,
+      "metrics": {
+        "coverage@10": 0.374969,
+        "exposure_gini@10": 0.834255,
+        "ndcg@10": 0.107774,
+        "ndcg@20": 0.125033,
+        "ndcg@5": 0.089617,
+        "novelty@10": 13.368759,
+        "precision@10": 0.056533,
+        "precision@20": 0.0384,
+        "precision@5": 0.079733,
+        "recall@10": 0.113067,
+        "recall@20": 0.1536,
+        "recall@5": 0.079733
+      }
+    },
+    {
+      "model": "als",
+      "users_evaluated": 1500,
+      "fit_seconds": 1.451,
+      "eval_seconds": 0.174,
+      "metrics": {
+        "coverage@10": 0.264239,
+        "exposure_gini@10": 0.883753,
+        "ndcg@10": 0.10071,
+        "ndcg@20": 0.126852,
+        "ndcg@5": 0.078671,
+        "novelty@10": 11.871874,
+        "precision@10": 0.0566,
+        "precision@20": 0.0436,
+        "precision@5": 0.072533,
+        "recall@10": 0.1132,
+        "recall@20": 0.1744,
+        "recall@5": 0.072533
+      }
+    },
+    {
+      "model": "content-knn",
+      "users_evaluated": 1500,
+      "fit_seconds": 0.563,
+      "eval_seconds": 0.111,
+      "metrics": {
+        "coverage@10": 0.35737,
+        "exposure_gini@10": 0.82041,
+        "ndcg@10": 0.054705,
+        "ndcg@20": 0.073652,
+        "ndcg@5": 0.037474,
+        "novelty@10": 13.978028,
+        "precision@10": 0.034067,
+        "precision@20": 0.028167,
+        "precision@5": 0.0364,
+        "recall@10": 0.068133,
+        "recall@20": 0.112667,
+        "recall@5": 0.0364
+      }
+    },
+    {
+      "model": "hybrid-knn-als",
+      "users_evaluated": 1500,
+      "fit_seconds": 1.632,
+      "eval_seconds": 2.515,
+      "metrics": {
+        "coverage@10": 0.398273,
+        "exposure_gini@10": 0.806649,
+        "ndcg@10": 0.114441,
+        "ndcg@20": 0.13837,
+        "ndcg@5": 0.091789,
+        "novelty@10": 12.392867,
+        "precision@10": 0.0622,
+        "precision@20": 0.0451,
+        "precision@5": 0.082933,
+        "recall@10": 0.1244,
+        "recall@20": 0.1804,
+        "recall@5": 0.082933
+      }
+    },
+    {
+      "model": "hybrid-full",
+      "users_evaluated": 1500,
+      "fit_seconds": 2.135,
+      "eval_seconds": 3.709,
+      "metrics": {
+        "coverage@10": 0.217062,
+        "exposure_gini@10": 0.911312,
+        "ndcg@10": 0.098558,
+        "ndcg@20": 0.122728,
+        "ndcg@5": 0.077129,
+        "novelty@10": 11.906572,
+        "precision@10": 0.054867,
+        "precision@20": 0.041567,
+        "precision@5": 0.070267,
+        "recall@10": 0.109733,
+        "recall@20": 0.166267,
+        "recall@5": 0.070267
+      }
+    },
+    {
+      "model": "hybrid-fitted",
+      "users_evaluated": 1500,
+      "fit_seconds": 1.635,
+      "eval_seconds": 2.519,
+      "metrics": {
+        "coverage@10": 0.376029,
+        "exposure_gini@10": 0.821137,
+        "ndcg@10": 0.11355,
+        "ndcg@20": 0.137001,
+        "ndcg@5": 0.090582,
+        "novelty@10": 12.259743,
+        "precision@10": 0.0624,
+        "precision@20": 0.044967,
+        "precision@5": 0.082667,
+        "recall@10": 0.1248,
+        "recall@20": 0.179867,
+        "recall@5": 0.082667
+      }
+    }
+  ]
+}
