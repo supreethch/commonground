@@ -1,0 +1,62 @@
+{
+  "checked_at": "2026-09-06T06:46:57+00:00",
+  "user_agent": "CommonGround/0.1 (portfolio project; https://github.com/supreethchittaluri/commonground)",
+  "sources": [
+    {
+      "key": "musicbrainz_canonical_dump",
+      "name": "MusicBrainz canonical data dump",
+      "ok": true,
+      "licence": "CC0-1.0",
+      "licence_url": "https://musicbrainz.org/doc/About/Data_License",
+      "used_for": "catalogue spine: artists, recordings, releases",
+      "required": true,
+      "checked_url": "https://data.metabrainz.org/pub/musicbrainz/canonical_data/",
+      "status": 200,
+      "resolved_url": "https://data.metabrainz.org/pub/musicbrainz/canonical_data/musicbrainz-canonical-dump-20260903-080002/musicbrainz-canonical-dump-20260903-080002.tar.zst",
+      "bytes": 2352502917,
+      "last_modified": "Thu, 03 Sep 2026 08:05:46 GMT",
+      "notes": [
+        "2 dump directories listed; newest is musicbrainz-canonical-dump-20260903-080002/"
+      ]
+    },
+    {
+      "key": "listenbrainz_incremental_dump",
+      "name": "ListenBrainz incremental listen dump",
+      "ok": true,
+      "licence": "CC0-1.0",
+      "licence_url": "https://listenbrainz.org/data/",
+      "used_for": "user-item interactions for collaborative filtering",
+      "required": true,
+      "checked_url": "https://data.metabrainz.org/pub/musicbrainz/listenbrainz/incremental/",
+      "status": 200,
+      "resolved_url": "https://data.metabrainz.org/pub/musicbrainz/listenbrainz/incremental/listenbrainz-dump-2653-20260906-000002-incremental/listenbrainz-listens-dump-2653-20260906-000002-incremental.tar.zst",
+      "bytes": 388649913,
+      "last_modified": "Sun, 06 Sep 2026 00:03:46 GMT",
+      "notes": [
+        "30 dump directories listed; newest is listenbrainz-dump-2653-20260906-000002-incremental/"
+      ]
+    },
+    {
+      "key": "musicbrainz_ws",
+      "name": "MusicBrainz web service",
+      "ok": true,
+      "licence": "CC0-1.0 (core data)",
+      "licence_url": "https://musicbrainz.org/doc/About/Data_License",
+      "used_for": "entity resolution for user-supplied history imports",
+      "required": true,
+      "checked_url": "https://musicbrainz.org/ws/2/recording/?query=recording:test&fmt=json&limit=1",
+      "status": 200
+    },
+    {
+      "key": "listenbrainz_api",
+      "name": "ListenBrainz web API",
+      "ok": true,
+      "licence": "CC0-1.0",
+      "licence_url": "https://listenbrainz.org/data/",
+      "used_for": "optional live enrichment; never on a user request path",
+      "required": false,
+      "checked_url": "https://api.listenbrainz.org/1/stats/sitewide/artists?count=1",
+      "status": 200
+    }
+  ]
+}
