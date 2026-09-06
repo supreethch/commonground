@@ -10,14 +10,15 @@ person is quietly driving the whole hour, and whether anyone is being made to si
 through something they have explicitly said they hate — and tells you, per track,
 in a sentence, why it is there.
 
-> **Status: milestone 3 of 6 — the individual recommender works and is
-> measured.** No live demo and no UI yet. What works today: real signup and
-> login, Spotify-free onboarding, listening-history import for three export
-> formats, and a hybrid recommender evaluated against four baselines on 2,248
-> real ListenBrainz users — **3.1× the precision of a popularity baseline while
-> recommending 69× more of the catalogue** ([measurements](docs/measurements.md)).
-> The group ranking, fairness metrics and the three modes are M4. This section
-> will keep saying exactly where the project is.
+> **Status: milestone 4 of 6 — group recommendation, measured on two datasets.**
+> No live demo and no UI yet. What works today: real signup and login,
+> Spotify-free onboarding, history import for three export formats, a hybrid
+> individual recommender (**3.1× the precision of a popularity baseline while
+> recommending 69× more of the catalogue**), and the group layer — three modes,
+> a hard veto, fairness-aware selection, and per-track explanations derived from
+> the score arithmetic. Rooms, invites, real-time voting and the UI are M5.
+> Full numbers, including what could *not* be shown, in
+> [measurements](docs/measurements.md).
 
 ## Why this is not a wrapper around a language model
 
@@ -93,16 +94,16 @@ contain a number that was not produced by a command in this repository.
 
 | | Measured 2026-09-06 |
 | --- | --- |
-| Python tests passing | 146 (against both a populated and an empty catalogue) |
-| Recommender dataset | 2,248 users, 12,273 items, 98,960 interactions (0.36% dense) |
-| Best model P@10 / NDCG@10 | 0.0624 / 0.1136 (hybrid of item-KNN + ALS) |
-| Popularity baseline P@10 / NDCG@10 | 0.0199 / 0.0412 |
-| Catalogue coverage: best vs popularity | 39.8% vs 0.55% |
-| Full 8-model evaluation | 17.3s |
-| Onboarding catalogue | 1,637 recordings / 588 artists, 211 tagged |
+| Python tests passing | 212 (120 in the engine) |
+| Datasets | ListenBrainz slice (2,248×12,273, 0.36% dense) and MovieLens-1M (5,178×3,115, 3.48%) |
+| Best individual model P@10 | 0.0624 (music) · 0.0331 (MovieLens) |
+| Popularity baseline P@10 | 0.0199 (music) · 0.0220 (MovieLens) |
+| Catalogue coverage: best vs popularity | 39.8% vs 0.55% (music) |
+| Group: veto violations vs average-score | **0.0000 vs 0.0727** (music), **0.0000 vs 0.0240** (MovieLens) |
+| Group: worst-artist share vs average-score | **0.131 vs 0.205** (music), **0.230 vs 0.377** (MovieLens) |
+| Group: held-out accuracy vs average-score | **not distinguishable from zero on either dataset** |
+| Artist genre coverage after enrichment | 91.2% of items, 91.2% of interactions |
 | ListenBrainz dump: MBID coverage | 1.9% of listens carry a recording MBID |
-| MusicBrainz canonical dump | 2.2 GiB compressed |
-| ListenBrainz daily incremental dump | 370.6 MiB compressed (4.3 GB of JSON) |
 
 Full detail, including what these numbers are *not*, in
 [docs/measurements.md](docs/measurements.md) — which is generated from
@@ -129,10 +130,17 @@ around this for the recommender by building its dataset from the listen dumps
 instead, where item identity is the normalised artist and track name.
 
 **A negative result worth stating:** the fitted weight search gave the
-content-based model and the popularity prior **zero** weight. Content features
-are thin here — a third of items have genre tags, the rest carry only artist
-identity, which collaborative filtering already captures. It is reported rather
-than tuned away.
+content-based model and the popularity prior **zero** weight. MovieLens-1M
+settled why. It has genres on 100% of items, and content-KNN still scores
+P@10 0.0044 there — *worse* than on the music data. Genre alone is a weak
+recommendation signal; our music tags were not the problem.
+
+**A claim I had to withdraw.** Milestone 4 originally reported that the group
+layer wins on groups whose tastes conflict and loses on groups that agree. That
+was a ~0.01 gap over 50 groups. Paired bootstrap intervals show it inside the
+noise, and **its sign reverses on MovieLens-1M**. The second dataset is what
+caught it. What survives on both datasets, significantly: zero veto violations,
+much less repetition, a higher proxy floor — and no measurable accuracy cost.
 
 ## Licence and data
 

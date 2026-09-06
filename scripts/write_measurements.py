@@ -55,7 +55,7 @@ def format_individual(record: dict) -> str:
         "",
         "| | |",
         "| --- | --- |",
-        "| Source | one ListenBrainz daily incremental dump (CC0) |",
+        f"| Source | {record.get('_dataset_label', 'unknown')} |",
         f"| Users | {dataset['users']:,} |",
         f"| Items | {dataset['items']:,} |",
         f"| Interactions | {dataset['interactions']:,} |",
@@ -163,7 +163,7 @@ def format_group(record: dict) -> str:
     groups = record["groups"]
     lines = [
         "",
-        "## M4 -- group recommendation",
+        f"## M4 -- group recommendation on {record.get('_dataset_label', 'the dataset')}",
         "",
         f"*Run {record['run_at']} \u00b7 commit `{record['git_sha']}` \u00b7 engine "
         f"{record['engine_version']} \u00b7 config hash `{record['config_hash']}`*",
@@ -196,48 +196,49 @@ def format_group(record: dict) -> str:
         cells = [f"{result['overall'].get(key, 0.0):.4f}" for _, key in GROUP_COLUMNS]
         lines.append(f"| {result['strategy']} | " + " | ".join(cells) + " |")
 
-    by_name = {r["strategy"]: r for r in record["results"]}
-    consensus = by_name.get("consensus")
-    average = by_name.get("average-score")
-
     lines += ["", "### Reading this", ""]
-    if consensus and average:
-        c, a = consensus["overall"], average["overall"]
+
+    comparisons = record.get("comparisons", {}).get("consensus_vs_average_score", {})
+    if comparisons:
         lines += [
-            "**The claim is a trade, and the trade is visible.** Against the "
-            "average-score baseline, `consensus` gives up "
-            f"{(a['held_mean'] - c['held_mean']) / a['held_mean']:.0%} of the "
-            "held-out mean and buys: a proxy floor of "
-            f"{c['proxy_min']:.4f} against {a['proxy_min']:.4f}, "
-            f"{c['veto_violations']:.4f} veto violations against "
-            f"{a['veto_violations']:.4f}, and a worst-artist share of "
-            f"{c['max_artist_share']:.4f} against {a['max_artist_share']:.4f}.",
+            "Differences against the `average-score` baseline, **paired over the "
+            "same groups** with a 10,000-sample bootstrap. An interval containing "
+            "zero means the two strategies are not distinguishable at this sample "
+            "size.",
+            "",
+            "| metric | consensus \u2212 average-score | 95% CI | distinguishable? |",
+            "| --- | --- | --- | --- |",
+        ]
+        for metric, comparison in comparisons.items():
+            verdict = "**yes**" if comparison.get("significant") else "no"
+            lines.append(
+                f"| {metric} | {comparison['mean_difference']:+.4f} | "
+                f"[{comparison['ci_low']:+.4f}, {comparison['ci_high']:+.4f}] | {verdict} |"
+            )
+        lines += [
+            "",
+            "**What the group layer demonstrably buys: no veto violations, "
+            "markedly less repetition, and a higher proxy floor.** All three are "
+            "significant here and on the other dataset.",
+            "",
+            "**What it does not buy is held-out accuracy, in either direction.** "
+            "The accuracy intervals straddle zero. That cuts both ways and both "
+            "are worth saying: the fairness and repetition guarantees are real, "
+            "and they cost nothing measurable -- but no accuracy *gain* can be "
+            "claimed from these numbers either.",
             "",
         ]
 
-        adversarial_c = consensus["by_kind"].get("adversarial", {})
-        adversarial_a = average["by_kind"].get("adversarial", {})
-        homogeneous_c = consensus["by_kind"].get("homogeneous", {})
-        homogeneous_a = average["by_kind"].get("homogeneous", {})
-        if adversarial_c and homogeneous_c:
-            lines += [
-                "**Where each strategy wins is the interesting part.** On "
-                "*homogeneous* groups -- people who already agree -- average-score "
-                f"reaches more members ({homogeneous_a.get('held_served', 0):.4f} vs "
-                f"{homogeneous_c.get('held_served', 0):.4f}), because averaging works "
-                "fine when everyone wants the same thing. On *adversarial* groups, "
-                "where tastes are near-disjoint, that reverses: consensus reaches "
-                f"{adversarial_c.get('held_served', 0):.4f} against "
-                f"{adversarial_a.get('held_served', 0):.4f}.",
-                "",
-                "That is the thesis of the project, measured: **averaging is "
-                "adequate until the group disagrees, which is exactly when a group "
-                "recommender is needed.**",
-                "",
-            ]
-
     lines += [
         "### Per-kind breakdown",
+        "",
+        "Roughly 50 groups per kind, so **these cells are noisy and no conclusion "
+        "should be drawn from a single one**. An earlier version of this document "
+        "read a per-kind gap of ~0.01 as evidence that the group layer wins on "
+        "adversarial groups; the paired intervals above show that gap is inside "
+        "the noise, and the sign of it reverses on the other dataset. The table "
+        "stays because the *large* differences in it -- veto violations and "
+        "repetition -- are real.",
         "",
     ]
     kinds = sorted({k for r in record["results"] for k in r["by_kind"]})
@@ -304,17 +305,29 @@ def format_mode_sweep(record: dict) -> str:
 def main() -> int:
     sections = [HEADER]
 
-    individual = RESULTS_DIR / "individual.json"
-    if individual.exists():
-        sections.append(format_individual(json.loads(individual.read_text())))
+    for individual_file, dataset_label in (
+        ("individual.json", "ListenBrainz slice"),
+        ("individual-ml1m.json", "MovieLens-1M"),
+    ):
+        path = RESULTS_DIR / individual_file
+        if path.exists():
+            record = json.loads(path.read_text())
+            record["_dataset_label"] = dataset_label
+            sections.append(format_individual(record))
 
     sweep = RESULTS_DIR / "weight-sweep.json"
     if sweep.exists():
         sections.append(format_sweep(json.loads(sweep.read_text())))
 
-    group_result = RESULTS_DIR / "group.json"
-    if group_result.exists():
-        sections.append(format_group(json.loads(group_result.read_text())))
+    for group_file, dataset_label in (
+        ("group.json", "ListenBrainz slice"),
+        ("group-ml1m.json", "MovieLens-1M"),
+    ):
+        path = RESULTS_DIR / group_file
+        if path.exists():
+            record = json.loads(path.read_text())
+            record["_dataset_label"] = dataset_label
+            sections.append(format_group(record))
 
     mode_sweep = RESULTS_DIR / "mode-sweep.json"
     if mode_sweep.exists():

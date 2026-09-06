@@ -20,7 +20,7 @@ python scripts/write_measurements.py
 
 | | |
 | --- | --- |
-| Source | one ListenBrainz daily incremental dump (CC0) |
+| Source | ListenBrainz slice |
 | Users | 2,248 |
 | Items | 12,273 |
 | Interactions | 98,960 |
@@ -52,6 +52,47 @@ Total evaluation time: **17.31s** for 8 models.
 `random` is the floor and behaves like one. Its high coverage and novelty are not a virtue: recommending the whole catalogue at random covers a lot of it.
 
 
+## M3 — individual recommendation
+
+*Run 2026-09-06T19:12:24Z · commit `e62a82b` · engine 0.3.0 · config hash `b19fda101d8b`*
+*Darwin arm64 python 3.12.14*
+
+### Dataset
+
+| | |
+| --- | --- |
+| Source | MovieLens-1M |
+| Users | 5,178 |
+| Items | 3,115 |
+| Interactions | 561,854 |
+| Density | 3.4834% |
+| Items with genre tags | 0 (0.0%) |
+| Split | time-ordered leave-last-5-out, min 5 training items |
+| Training interactions | 535,964 |
+| Users evaluated | 1,500 of 5,178 eligible |
+
+### Results
+
+| model | P@10 | R@10 | NDCG@10 | coverage@10 | novelty@10 | gini@10 | fit (s) |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| random | 0.0017 | 0.0033 | 0.0023 | 0.9926 | 13.1422 | 0.2525 | 0.0 |
+| popularity | 0.0220 | 0.0440 | 0.0361 | 0.0321 | 8.1035 | 0.9932 | 0.0 |
+| item-knn | 0.0292 | 0.0584 | 0.0497 | 0.0745 | 8.4409 | 0.9832 | 0.7 |
+| als | 0.0322 | 0.0644 | 0.0500 | 0.4555 | 9.8957 | 0.8067 | 2.1 |
+| content-knn | 0.0044 | 0.0088 | 0.0068 | 0.3101 | 12.8402 | 0.9401 | 0.2 |
+| hybrid-knn-als | 0.0324 | 0.0648 | 0.0547 | 0.1579 | 8.7661 | 0.9584 | 2.9 |
+| hybrid-full | 0.0275 | 0.0551 | 0.0455 | 0.1493 | 9.1443 | 0.9600 | 2.8 |
+| hybrid-fitted | 0.0331 | 0.0663 | 0.0554 | 0.2074 | 9.0027 | 0.9360 | 2.7 |
+
+Total evaluation time: **15.16s** for 8 models.
+
+### Reading this
+
+**`hybrid-fitted` beats the popularity baseline by 1.5× on P@10 and 1.5× on NDCG@10, while recommending 6× more of the catalogue.** Popularity reaches 3.21% coverage — it shows almost everyone the same few dozen tracks, which is exactly the failure that accuracy metrics alone would hide.
+
+`random` is the floor and behaves like one. Its high coverage and novelty are not a virtue: recommending the whole catalogue at random covers a lot of it.
+
+
 ## Hybrid weights: how they were fitted
 
 Fitted on a validation split nested inside the training data. The test split used by run_eval.py was not seen here.
@@ -68,9 +109,9 @@ Grid `[0.0, 0.15, 0.35, 0.5, 0.65]` over four components, 300 validation users, 
 **The search assigned zero weight to `content-knn`, `popularity`.** That is a negative result and it is reported rather than tuned away: on this dataset the content model and the popularity prior add nothing once collaborative signal is present. The content features are thin — a third of items have genre tags and the rest carry only artist identity, which collaborative filtering already captures.
 
 
-## M4 -- group recommendation
+## M4 -- group recommendation on ListenBrainz slice
 
-*Run 2026-09-06T18:58:46Z · commit `e66e331` · engine 0.3.0 · config hash `899964bd8abb`*
+*Run 2026-09-06T19:14:45Z · commit `e62a82b` · engine 0.3.0 · config hash `899964bd8abb`*
 *Darwin arm64 python 3.12.14*
 
 200 synthetic groups of [3, 4, 5, 6] members, 20 tracks each.
@@ -97,13 +138,23 @@ Cohesion is mean pairwise Jaccard similarity of members' training histories, rep
 
 ### Reading this
 
-**The claim is a trade, and the trade is visible.** Against the average-score baseline, `consensus` gives up 10% of the held-out mean and buys: a proxy floor of 0.7199 against 0.6670, 0.0000 veto violations against 0.0727, and a worst-artist share of 0.1313 against 0.2052.
+Differences against the `average-score` baseline, **paired over the same groups** with a 10,000-sample bootstrap. An interval containing zero means the two strategies are not distinguishable at this sample size.
 
-**Where each strategy wins is the interesting part.** On *homogeneous* groups -- people who already agree -- average-score reaches more members (0.2023 vs 0.1887), because averaging works fine when everyone wants the same thing. On *adversarial* groups, where tastes are near-disjoint, that reverses: consensus reaches 0.0993 against 0.0887.
+| metric | consensus − average-score | 95% CI | distinguishable? |
+| --- | --- | --- | --- |
+| held_mean | -0.0031 | [-0.0085, +0.0018] | no |
+| held_served | +0.0020 | [-0.0152, +0.0183] | no |
+| proxy_min | +0.0529 | [+0.0465, +0.0596] | **yes** |
+| veto_violations | -0.0728 | [-0.0887, -0.0580] | **yes** |
+| max_artist_share | -0.0740 | [-0.0920, -0.0568] | **yes** |
 
-That is the thesis of the project, measured: **averaging is adequate until the group disagrees, which is exactly when a group recommender is needed.**
+**What the group layer demonstrably buys: no veto violations, markedly less repetition, and a higher proxy floor.** All three are significant here and on the other dataset.
+
+**What it does not buy is held-out accuracy, in either direction.** The accuracy intervals straddle zero. That cuts both ways and both are worth saying: the fairness and repetition guarantees are real, and they cost nothing measurable -- but no accuracy *gain* can be claimed from these numbers either.
 
 ### Per-kind breakdown
+
+Roughly 50 groups per kind, so **these cells are noisy and no conclusion should be drawn from a single one**. An earlier version of this document read a per-kind gap of ~0.01 as evidence that the group layer wins on adversarial groups; the paired intervals above show that gap is inside the noise, and the sign of it reverses on the other dataset. The table stays because the *large* differences in it -- veto violations and repetition -- are real.
 
 **members reached (held_served)**
 
@@ -137,6 +188,87 @@ That is the thesis of the project, measured: **averaging is adequate until the g
 | average-score | 0.0780 | 0.0760 | 0.0250 | 0.1120 |
 | least-misery | 0.0000 | 0.0000 | 0.0000 | 0.0000 |
 | popularity | 0.9090 | 0.8940 | 0.8290 | 0.8980 |
+
+
+## M4 -- group recommendation on MovieLens-1M
+
+*Run 2026-09-06T19:14:52Z · commit `e62a82b` · engine 0.3.0 · config hash `a1a4e5443783`*
+*Darwin arm64 python 3.12.14*
+
+200 synthetic groups of [3, 4, 5, 6] members, 20 tracks each.
+
+| group kind | groups | mean size | mean cohesion |
+| --- | --- | --- | --- |
+| adversarial | 50 | 4.0 | 0.0160 |
+| cold_start | 50 | 4.6 | 0.0342 |
+| homogeneous | 50 | 4.5 | 0.1253 |
+| mixed | 50 | 4.6 | 0.0539 |
+
+Cohesion is mean pairwise Jaccard similarity of members' training histories, reported so the labels can be checked rather than trusted.
+
+### Results (all groups)
+
+| strategy | held mean | held served | held gini | proxy mean | proxy min | veto viol. | max artist | novelty |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| consensus | 0.0600 | 0.2563 | 0.4770 | 0.8531 | 0.8194 | 0.0000 | 0.2300 | 9.0407 |
+| discovery | 0.0600 | 0.2628 | 0.4999 | 0.8345 | 0.8083 | 0.0640 | 0.2140 | 9.2869 |
+| fair_rotation | 0.0604 | 0.2577 | 0.4760 | 0.8540 | 0.8226 | 0.0000 | 0.2352 | 9.0333 |
+| average-score | 0.0612 | 0.2613 | 0.4819 | 0.8761 | 0.8105 | 0.0240 | 0.3765 | 8.9363 |
+| least-misery | 0.0580 | 0.2445 | 0.4442 | 0.8617 | 0.8172 | 0.0000 | 0.3755 | 8.9992 |
+| popularity | 0.0571 | 0.2309 | 0.4510 | 0.8215 | 0.7232 | 0.1202 | 0.4120 | 8.7173 |
+
+### Reading this
+
+Differences against the `average-score` baseline, **paired over the same groups** with a 10,000-sample bootstrap. An interval containing zero means the two strategies are not distinguishable at this sample size.
+
+| metric | consensus − average-score | 95% CI | distinguishable? |
+| --- | --- | --- | --- |
+| held_mean | -0.0011 | [-0.0062, +0.0039] | no |
+| held_served | -0.0050 | [-0.0272, +0.0173] | no |
+| proxy_min | +0.0089 | [+0.0045, +0.0134] | **yes** |
+| veto_violations | -0.0240 | [-0.0325, -0.0167] | **yes** |
+| max_artist_share | -0.1465 | [-0.1593, -0.1343] | **yes** |
+
+**What the group layer demonstrably buys: no veto violations, markedly less repetition, and a higher proxy floor.** All three are significant here and on the other dataset.
+
+**What it does not buy is held-out accuracy, in either direction.** The accuracy intervals straddle zero. That cuts both ways and both are worth saying: the fairness and repetition guarantees are real, and they cost nothing measurable -- but no accuracy *gain* can be claimed from these numbers either.
+
+### Per-kind breakdown
+
+Roughly 50 groups per kind, so **these cells are noisy and no conclusion should be drawn from a single one**. An earlier version of this document read a per-kind gap of ~0.01 as evidence that the group layer wins on adversarial groups; the paired intervals above show that gap is inside the noise, and the sign of it reverses on the other dataset. The table stays because the *large* differences in it -- veto violations and repetition -- are real.
+
+**members reached (held_served)**
+
+| strategy | adversarial | cold_start | homogeneous | mixed |
+| --- | --- | --- | --- | --- |
+| consensus | 0.2090 | 0.2880 | 0.2757 | 0.2527 |
+| discovery | 0.2137 | 0.2823 | 0.2977 | 0.2577 |
+| fair_rotation | 0.2237 | 0.2790 | 0.2897 | 0.2387 |
+| average-score | 0.2287 | 0.2753 | 0.2667 | 0.2747 |
+| least-misery | 0.2233 | 0.2657 | 0.2447 | 0.2443 |
+| popularity | 0.2240 | 0.2367 | 0.2353 | 0.2277 |
+
+**proxy floor (proxy_min)**
+
+| strategy | adversarial | cold_start | homogeneous | mixed |
+| --- | --- | --- | --- | --- |
+| consensus | 0.8259 | 0.8336 | 0.8187 | 0.7995 |
+| discovery | 0.8198 | 0.8276 | 0.8017 | 0.7842 |
+| fair_rotation | 0.8289 | 0.8381 | 0.8208 | 0.8024 |
+| average-score | 0.8171 | 0.8252 | 0.8154 | 0.7844 |
+| least-misery | 0.8285 | 0.8352 | 0.8165 | 0.7884 |
+| popularity | 0.7291 | 0.7632 | 0.6788 | 0.7216 |
+
+**veto violations**
+
+| strategy | adversarial | cold_start | homogeneous | mixed |
+| --- | --- | --- | --- | --- |
+| consensus | 0.0000 | 0.0000 | 0.0000 | 0.0000 |
+| discovery | 0.0410 | 0.0560 | 0.0750 | 0.0840 |
+| fair_rotation | 0.0000 | 0.0000 | 0.0000 | 0.0000 |
+| average-score | 0.0030 | 0.0250 | 0.0340 | 0.0340 |
+| least-misery | 0.0000 | 0.0000 | 0.0000 | 0.0000 |
+| popularity | 0.0640 | 0.0950 | 0.2190 | 0.1030 |
 
 
 ## Mode parameters: how they were fitted

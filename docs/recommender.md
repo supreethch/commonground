@@ -195,12 +195,22 @@ score will often win that. It is **a better floor and a fairer distribution at a
 acceptable cost to the mean**, and that trade has to be shown as a number, in
 both directions, including where it loses.
 
-**Measured, on 200 synthetic groups** ([docs/measurements.md](measurements.md)):
-Consensus gives up 10% of the held-out mean against average-score and buys a
-proxy floor of 0.7199 against 0.6670, zero veto violations against 0.0727, and a
-worst-artist share of 0.1313 against 0.2052. It loses on homogeneous groups and
-wins on adversarial ones — averaging is adequate until the group disagrees,
-which is exactly when a group recommender is needed.
+**Measured on 200 synthetic groups, on two datasets, with paired bootstrap
+intervals** ([docs/measurements.md](measurements.md)). Against average-score,
+Consensus delivers — significantly, on both the ListenBrainz slice and
+MovieLens-1M — **zero veto violations**, **markedly less repetition**, and a
+**higher proxy floor**.
+
+It does **not** deliver a held-out accuracy difference in either direction: those
+intervals straddle zero on both datasets. So the honest claim is not "a better
+floor at a cost to the mean" — the cost to the mean is not measurable either.
+It is *fairness and repetition guarantees, at no measurable accuracy cost*.
+
+An earlier version of this document claimed the group layer wins on adversarial
+groups and loses on homogeneous ones. That was a ~0.01 per-kind gap over 50
+groups, it sits inside the noise band, and **its sign reverses on MovieLens-1M**.
+Adding the second dataset is what caught it, which is the entire reason for
+having a second dataset.
 
 ## Complexity
 
