@@ -10,16 +10,32 @@ pytestmark = pytest.mark.db
 
 def test_artists_endpoint_defaults_to_the_most_listened(client, catalogue) -> None:
     """An empty search box asking someone to recall an artist from nothing is
-    the worst possible first onboarding screen, so browse must work unqueried."""
+    the worst possible first onboarding screen, so browse must work unqueried.
+
+    Asserts the ordering property rather than the presence of a fixture row. The
+    first version looked for "Test Artist 0" in the top 50, which passed against
+    an empty CI database and failed against a developer's real one, where genuine
+    artists have millions of listens and outrank any fixture. A test that only
+    holds when the table is empty is worse than no test.
+    """
     catalogue(count=3)
 
     response = client.get("/api/artists?limit=50")
 
     assert response.status_code == 200
-    names = [a["name"] for a in response.json()]
-    assert "Test Artist 0" in names
     counts = [a["listen_count"] for a in response.json()]
+    assert counts, "browsing with no query must return something"
     assert counts == sorted(counts, reverse=True)
+
+
+def test_artist_browse_orders_by_listen_count_within_a_known_set(client, catalogue) -> None:
+    """The ordering above, checked against rows whose counts we control."""
+    catalogue(count=3)
+
+    found = client.get("/api/artists", params={"q": "Test Artist", "limit": 100}).json()
+
+    names = [a["name"] for a in found if a["name"].startswith("Test Artist")]
+    assert names[:3] == ["Test Artist 0", "Test Artist 1", "Test Artist 2"]
 
 
 def test_artist_search_is_case_insensitive(client, catalogue) -> None:

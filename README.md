@@ -10,10 +10,12 @@ person is quietly driving the whole hour, and whether anyone is being made to si
 through something they have explicitly said they hate — and tells you, per track,
 in a sentence, why it is there.
 
-> **Status: milestone 1 of 6 — research and architecture.** There is no live demo
-> and no working app yet. What exists is the design, the schema, and the tests
-> and tooling that keep the documentation honest. This section will keep saying
-> exactly where the project is.
+> **Status: milestone 2 of 6 — foundation.** No live demo and no UI yet. What
+> works today: real signup and login, Spotify-free taste onboarding against a
+> catalogue built from CC0 sources, listening-history import for three export
+> formats, and six seeded demo accounts with deliberately conflicting taste. The
+> recommender itself lands in M3 and M4. This section will keep saying exactly
+> where the project is.
 
 ## Why this is not a wrapper around a language model
 
@@ -57,12 +59,12 @@ also means the evaluation compares them on identical machinery.
 [Deployment](docs/deployment.md) ·
 [Decisions](docs/decisions.md)
 
-## Verify milestone 1
+## Verify
 
 ```bash
 docker compose up -d                       # Postgres on :5434, Redis on :6380
 python3.12 -m venv .venv                   # 3.12 specifically; 3.9 will not do
-./.venv/bin/pip install -e "packages/engine[dev]" "psycopg[binary]"
+./.venv/bin/pip install -e "packages/engine[dev]" -e "apps/api[dev]" "psycopg[binary]"
 
 export DATABASE_URL=postgresql://commonground:commonground@localhost:5434/commonground
 ./.venv/bin/python db/migrate.py
@@ -70,6 +72,11 @@ export DATABASE_URL=postgresql://commonground:commonground@localhost:5434/common
 ./.venv/bin/ruff check . && ./.venv/bin/ruff format --check .
 ./.venv/bin/python scripts/verify_sources.py
 ```
+
+To build the catalogue and try the API for real, see
+[docs/development.md](docs/development.md). The catalogue build takes about 40
+minutes the first time — almost all of it waiting on MusicBrainz's rate limit —
+and is cached and resumable.
 
 The last command re-checks every upstream data source and rewrites
 [`docs/source-provenance.json`](docs/source-provenance.json) with what they
@@ -83,16 +90,35 @@ contain a number that was not produced by a command in this repository.
 
 | | Measured 2026-09-06 |
 | --- | --- |
-| Python tests passing | 23 (7 schema tests against a live Postgres 17) |
+| Python tests passing | 94 (against both a populated and an empty catalogue) |
 | Tables in the schema | 21 |
+| Catalogue: recordings / artists | 1,637 / 588 |
+| Artists with genre tags | 211 of 588 (top 220 by listen count) |
+| Distinct genres / tags | 295 / 610 |
 | MusicBrainz canonical dump | 2.2 GiB compressed |
 | ListenBrainz daily incremental dump | 370.6 MiB compressed |
+| ListenBrainz sitewide stats ceiling | 1,000 rows per time range; offsets past it return empty |
+| MusicBrainz genre lookups | 193 fetched, 0 failed, ~9s each under throttling |
 | MusicBrainz recording-level URL relations | 1 of 10 recordings in a spot check had any |
 
-That last row changed the design: streaming links were meant to come from
-MusicBrainz's CC0 URL relationships, and at the recording level they are too
-sparse to rely on. Playback links are now deterministic search URLs, with real
-relations used where they exist. Actual coverage gets measured during M2 ingest.
+Two of those rows changed the design.
+
+**URL relations are too sparse to rely on.** Streaming links were meant to come
+from MusicBrainz's CC0 relationships; at the recording level they are mostly
+absent. Playback links are deterministic search URLs, with real relations
+preferred where they exist, and `recording_links.source` records which is which.
+
+**The genre pass had to be reordered.** MusicBrainz throttles by stalling a
+connection ~20s and then returning 503, and the build originally walked artists
+in MBID order — so any capped or interrupted run tagged an effectively random
+subset, leaving the artists every onboarding screen shows untagged. It now walks
+most-listened first, so any prefix of the work is the most useful prefix
+available.
+
+**Known gap:** the catalogue comes from ListenBrainz's most-played recordings,
+so it skews hard to pop and rock. The seeded ambient/classical persona matches
+only 6 artists against 94 for the indie-rock one. That is a real limitation of
+this data source, and M3 addresses it by building from the listen dumps instead.
 
 ## Licence and data
 
