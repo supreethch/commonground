@@ -116,15 +116,39 @@ but continuously serving whoever the playlist has served least so far.
 
 ### The three modes are parameter sets, not code paths
 
-| | `α` | `τ_veto` | `λ_div` | `λ_nov` | `λ_fair` |
-| --- | --- | --- | --- | --- | --- |
-| **Consensus** | 0.5 | 0.35 | med | 0 | 0 |
-| **Discovery** | 0.7 | 0.25 | high | high | 0 |
-| **Fair Rotation** | 0.3 | 0.35 | med | low | high |
+Fitted by `scripts/sweep_modes.py` on validation groups nested inside the
+training split — the test groups were never seen by the search. Measured values,
+not design intentions:
+
+| | `α` | `τ_veto` | `λ_div` | `λ_rep` | `λ_nov` | `λ_fair` |
+| --- | --- | --- | --- | --- | --- | --- |
+| **Consensus** | 1.0 | 0.35 | 0.15 | 0.25 | 0 | 0.45 |
+| **Discovery** | 0.7 | 0.25 | 0.15 | 0.25 | 0.35 | 0.45 |
+| **Fair Rotation** | 0.7 | 0.35 | 0.15 | 0.25 | 0 | 0.45 |
 
 One ranker, three configurations. A new mode is a row in a table and an entry in
 the evaluation, not a new branch — which also means the evaluation compares the
 modes on identical machinery.
+
+Two things the fit changed, and both are worth knowing:
+
+**Every mode wanted `λ_fair = 0.45`.** Serving the least-served member helps no
+matter which objective is being maximised. Fairness was designed as a Fair
+Rotation feature; it turned out to be a general one, and Consensus keeps its
+floor through that term rather than through a low `α` — which is why its fitted
+`α` is 1.0 and it still beats average-score on the floor.
+
+**The search wanted to delete Fair Rotation's veto** (`τ_veto = 0.00`), because
+removing it enlarges the candidate pool and raises the proxy floor. That trades
+a product guarantee for a metric, so the fit was overridden and `τ` held at
+0.35. The unconstrained result is in `eval/results/mode-sweep.json`; overriding
+a fit is a decision, and hiding it would make the rest of the numbers less
+trustworthy, not more.
+
+Each mode was fitted on the objective it exists for — Consensus on a balance of
+held-out mean and floor, Discovery on novelty subject to an accuracy floor, Fair
+Rotation on the floor itself. A single shared objective would have collapsed all
+three onto the average-score baseline and reported it as a win.
 
 ## Explanations come from the arithmetic
 
@@ -170,6 +194,13 @@ The claim CommonGround has to earn is not "highest mean satisfaction" — averag
 score will often win that. It is **a better floor and a fairer distribution at an
 acceptable cost to the mean**, and that trade has to be shown as a number, in
 both directions, including where it loses.
+
+**Measured, on 200 synthetic groups** ([docs/measurements.md](measurements.md)):
+Consensus gives up 10% of the held-out mean against average-score and buys a
+proxy floor of 0.7199 against 0.6670, zero veto violations against 0.0727, and a
+worst-artist share of 0.1313 against 0.2052. It loses on homogeneous groups and
+wins on adversarial ones — averaging is adequate until the group disagrees,
+which is exactly when a group recommender is needed.
 
 ## Complexity
 

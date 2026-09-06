@@ -147,6 +147,160 @@ def format_sweep(record: dict) -> str:
     return "\n".join(lines)
 
 
+GROUP_COLUMNS = [
+    ("held mean", "held_mean"),
+    ("held served", "held_served"),
+    ("held gini", "held_gini"),
+    ("proxy mean", "proxy_mean"),
+    ("proxy min", "proxy_min"),
+    ("veto viol.", "veto_violations"),
+    ("max artist", "max_artist_share"),
+    ("novelty", "novelty"),
+]
+
+
+def format_group(record: dict) -> str:
+    groups = record["groups"]
+    lines = [
+        "",
+        "## M4 -- group recommendation",
+        "",
+        f"*Run {record['run_at']} \u00b7 commit `{record['git_sha']}` \u00b7 engine "
+        f"{record['engine_version']} \u00b7 config hash `{record['config_hash']}`*",
+        f"*{record['platform']}*",
+        "",
+        f"{groups['total']} synthetic groups of "
+        f"{record['config'].get('group_sizes', [3, 4, 5, 6])} members, "
+        f"{record['k']} tracks each.",
+        "",
+        "| group kind | groups | mean size | mean cohesion |",
+        "| --- | --- | --- | --- |",
+    ]
+    for kind, stats in groups["by_kind"].items():
+        lines.append(
+            f"| {kind} | {stats['groups']} | {stats['mean_size']:.1f} | "
+            f"{stats['mean_cohesion']:.4f} |"
+        )
+
+    lines += [
+        "",
+        "Cohesion is mean pairwise Jaccard similarity of members' training "
+        "histories, reported so the labels can be checked rather than trusted.",
+        "",
+        "### Results (all groups)",
+        "",
+        "| strategy | " + " | ".join(n for n, _ in GROUP_COLUMNS) + " |",
+        "| --- | " + " | ".join("---" for _ in GROUP_COLUMNS) + " |",
+    ]
+    for result in record["results"]:
+        cells = [f"{result['overall'].get(key, 0.0):.4f}" for _, key in GROUP_COLUMNS]
+        lines.append(f"| {result['strategy']} | " + " | ".join(cells) + " |")
+
+    by_name = {r["strategy"]: r for r in record["results"]}
+    consensus = by_name.get("consensus")
+    average = by_name.get("average-score")
+
+    lines += ["", "### Reading this", ""]
+    if consensus and average:
+        c, a = consensus["overall"], average["overall"]
+        lines += [
+            "**The claim is a trade, and the trade is visible.** Against the "
+            "average-score baseline, `consensus` gives up "
+            f"{(a['held_mean'] - c['held_mean']) / a['held_mean']:.0%} of the "
+            "held-out mean and buys: a proxy floor of "
+            f"{c['proxy_min']:.4f} against {a['proxy_min']:.4f}, "
+            f"{c['veto_violations']:.4f} veto violations against "
+            f"{a['veto_violations']:.4f}, and a worst-artist share of "
+            f"{c['max_artist_share']:.4f} against {a['max_artist_share']:.4f}.",
+            "",
+        ]
+
+        adversarial_c = consensus["by_kind"].get("adversarial", {})
+        adversarial_a = average["by_kind"].get("adversarial", {})
+        homogeneous_c = consensus["by_kind"].get("homogeneous", {})
+        homogeneous_a = average["by_kind"].get("homogeneous", {})
+        if adversarial_c and homogeneous_c:
+            lines += [
+                "**Where each strategy wins is the interesting part.** On "
+                "*homogeneous* groups -- people who already agree -- average-score "
+                f"reaches more members ({homogeneous_a.get('held_served', 0):.4f} vs "
+                f"{homogeneous_c.get('held_served', 0):.4f}), because averaging works "
+                "fine when everyone wants the same thing. On *adversarial* groups, "
+                "where tastes are near-disjoint, that reverses: consensus reaches "
+                f"{adversarial_c.get('held_served', 0):.4f} against "
+                f"{adversarial_a.get('held_served', 0):.4f}.",
+                "",
+                "That is the thesis of the project, measured: **averaging is "
+                "adequate until the group disagrees, which is exactly when a group "
+                "recommender is needed.**",
+                "",
+            ]
+
+    lines += [
+        "### Per-kind breakdown",
+        "",
+    ]
+    kinds = sorted({k for r in record["results"] for k in r["by_kind"]})
+    for metric_label, metric_key in [
+        ("members reached (held_served)", "held_served"),
+        ("proxy floor (proxy_min)", "proxy_min"),
+        ("veto violations", "veto_violations"),
+    ]:
+        lines += [
+            f"**{metric_label}**",
+            "",
+            "| strategy | " + " | ".join(kinds) + " |",
+            "| --- | " + " | ".join("---" for _ in kinds) + " |",
+        ]
+        for result in record["results"]:
+            cells = [
+                f"{result['by_kind'].get(kind, {}).get(metric_key, 0.0):.4f}" for kind in kinds
+            ]
+            lines.append(f"| {result['strategy']} | " + " | ".join(cells) + " |")
+        lines.append("")
+
+    return "\n".join(lines)
+
+
+def format_mode_sweep(record: dict) -> str:
+    lines = [
+        "",
+        "## Mode parameters: how they were fitted",
+        "",
+        record["note"],
+        "",
+        f"{record['combinations_evaluated']} combinations on "
+        f"{record['validation_groups']} validation groups.",
+        "",
+        "| mode | objective | alpha | tau_veto | lambda_fair | lambda_nov |",
+        "| --- | --- | --- | --- | --- | --- |",
+    ]
+    for mode_name, row in record["selected"].items():
+        p = row["params"]
+        objective = record["objectives"].get(mode_name, "")
+        lines.append(
+            f"| {mode_name} | {objective} | {p['alpha']:.2f} | {p['tau_veto']:.2f} | "
+            f"{p['lambda_fair']:.2f} | {p['lambda_nov']:.2f} |"
+        )
+
+    lines += [
+        "",
+        "**Two findings worth stating.** Every mode wanted `lambda_fair = 0.45`: "
+        "serving the least-served member helps regardless of which objective is "
+        "being maximised, which was not the expectation -- fairness was designed "
+        "as a Fair Rotation feature, not a general one.",
+        "",
+        "And the unconstrained search chose `tau_veto = 0.00` for fair_rotation. "
+        "That maximises the proxy floor by deleting the veto and enlarging the "
+        "candidate pool -- trading a product guarantee (no member sits through a "
+        "track they strongly object to) for a metric. **The fit was overridden "
+        "and tau held at 0.35**, which is recorded here rather than quietly "
+        "applied.",
+        "",
+    ]
+    return "\n".join(lines)
+
+
 def main() -> int:
     sections = [HEADER]
 
@@ -157,6 +311,14 @@ def main() -> int:
     sweep = RESULTS_DIR / "weight-sweep.json"
     if sweep.exists():
         sections.append(format_sweep(json.loads(sweep.read_text())))
+
+    group_result = RESULTS_DIR / "group.json"
+    if group_result.exists():
+        sections.append(format_group(json.loads(group_result.read_text())))
+
+    mode_sweep = RESULTS_DIR / "mode-sweep.json"
+    if mode_sweep.exists():
+        sections.append(format_mode_sweep(json.loads(mode_sweep.read_text())))
 
     sections.append(
         "\n".join(
@@ -172,8 +334,16 @@ def main() -> int:
                 "comparable to numbers computed on MovieLens or Last.fm-360K. Only the "
                 "*relative* comparison between the rows above is meaningful, and that is "
                 "the whole reason the baselines are there.",
-                "- **Not group recommendation.** Everything here scores one user at a "
-                "time. The group ranking, fairness metrics and the three modes are M4.",
+                "- **Group metrics inherit that caveat and add one.** `held_*` "
+                "numbers are grounded in real held-out plays, but `proxy_*` numbers "
+                "use the model's own predicted satisfaction and so partly measure "
+                "the model agreeing with itself. Where the two disagree, the held-out "
+                "figure is the honest one.",
+                "- **`held_gini` is not a fairness win on its own.** At this sparsity "
+                "most members get zero hits, and a strategy that serves nobody scores "
+                "a perfect Gini because everyone is equally unserved -- which is why "
+                "`popularity` has the lowest inequality in the table and is still the "
+                "worst strategy in it.",
                 "",
             ]
         )

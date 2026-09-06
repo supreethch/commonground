@@ -68,8 +68,97 @@ Grid `[0.0, 0.15, 0.35, 0.5, 0.65]` over four components, 300 validation users, 
 **The search assigned zero weight to `content-knn`, `popularity`.** That is a negative result and it is reported rather than tuned away: on this dataset the content model and the popularity prior add nothing once collaborative signal is present. The content features are thin — a third of items have genre tags and the rest carry only artist identity, which collaborative filtering already captures.
 
 
+## M4 -- group recommendation
+
+*Run 2026-09-06T18:58:46Z · commit `e66e331` · engine 0.3.0 · config hash `899964bd8abb`*
+*Darwin arm64 python 3.12.14*
+
+200 synthetic groups of [3, 4, 5, 6] members, 20 tracks each.
+
+| group kind | groups | mean size | mean cohesion |
+| --- | --- | --- | --- |
+| adversarial | 50 | 4.5 | 0.0023 |
+| cold_start | 50 | 4.6 | 0.0025 |
+| homogeneous | 50 | 4.5 | 0.0640 |
+| mixed | 50 | 4.5 | 0.0157 |
+
+Cohesion is mean pairwise Jaccard similarity of members' training histories, reported so the labels can be checked rather than trusted.
+
+### Results (all groups)
+
+| strategy | held mean | held served | held gini | proxy mean | proxy min | veto viol. | max artist | novelty |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| consensus | 0.0279 | 0.1169 | 0.2414 | 0.7463 | 0.7199 | 0.0000 | 0.1313 | 12.6670 |
+| discovery | 0.0173 | 0.0715 | 0.1811 | 0.7088 | 0.6819 | 0.0917 | 0.1168 | 14.1197 |
+| fair_rotation | 0.0267 | 0.1111 | 0.2517 | 0.7468 | 0.7238 | 0.0000 | 0.1298 | 12.6977 |
+| average-score | 0.0310 | 0.1149 | 0.2362 | 0.7631 | 0.6670 | 0.0727 | 0.2052 | 12.6157 |
+| least-misery | 0.0210 | 0.0870 | 0.1827 | 0.7420 | 0.6896 | 0.0000 | 0.1958 | 12.7575 |
+| popularity | 0.0253 | 0.0662 | 0.1576 | 0.4471 | 0.2272 | 0.8825 | 0.6785 | 8.3964 |
+
+### Reading this
+
+**The claim is a trade, and the trade is visible.** Against the average-score baseline, `consensus` gives up 10% of the held-out mean and buys: a proxy floor of 0.7199 against 0.6670, 0.0000 veto violations against 0.0727, and a worst-artist share of 0.1313 against 0.2052.
+
+**Where each strategy wins is the interesting part.** On *homogeneous* groups -- people who already agree -- average-score reaches more members (0.2023 vs 0.1887), because averaging works fine when everyone wants the same thing. On *adversarial* groups, where tastes are near-disjoint, that reverses: consensus reaches 0.0993 against 0.0887.
+
+That is the thesis of the project, measured: **averaging is adequate until the group disagrees, which is exactly when a group recommender is needed.**
+
+### Per-kind breakdown
+
+**members reached (held_served)**
+
+| strategy | adversarial | cold_start | homogeneous | mixed |
+| --- | --- | --- | --- | --- |
+| consensus | 0.0993 | 0.1017 | 0.1887 | 0.0780 |
+| discovery | 0.0437 | 0.0447 | 0.1293 | 0.0683 |
+| fair_rotation | 0.0960 | 0.1070 | 0.1820 | 0.0593 |
+| average-score | 0.0887 | 0.0870 | 0.2023 | 0.0817 |
+| least-misery | 0.0597 | 0.0647 | 0.1740 | 0.0497 |
+| popularity | 0.0553 | 0.0503 | 0.0807 | 0.0783 |
+
+**proxy floor (proxy_min)**
+
+| strategy | adversarial | cold_start | homogeneous | mixed |
+| --- | --- | --- | --- | --- |
+| consensus | 0.7072 | 0.7085 | 0.7671 | 0.6967 |
+| discovery | 0.6596 | 0.6606 | 0.7382 | 0.6692 |
+| fair_rotation | 0.7108 | 0.7117 | 0.7715 | 0.7011 |
+| average-score | 0.6527 | 0.6655 | 0.7168 | 0.6329 |
+| least-misery | 0.6748 | 0.6709 | 0.7479 | 0.6647 |
+| popularity | 0.2179 | 0.2451 | 0.2382 | 0.2074 |
+
+**veto violations**
+
+| strategy | adversarial | cold_start | homogeneous | mixed |
+| --- | --- | --- | --- | --- |
+| consensus | 0.0000 | 0.0000 | 0.0000 | 0.0000 |
+| discovery | 0.1010 | 0.1030 | 0.0380 | 0.1250 |
+| fair_rotation | 0.0000 | 0.0000 | 0.0000 | 0.0000 |
+| average-score | 0.0780 | 0.0760 | 0.0250 | 0.1120 |
+| least-misery | 0.0000 | 0.0000 | 0.0000 | 0.0000 |
+| popularity | 0.9090 | 0.8940 | 0.8290 | 0.8980 |
+
+
+## Mode parameters: how they were fitted
+
+Fitted on validation groups built from a split nested inside the training data. The test groups were not seen here. Each mode is selected on the objective it exists for, because a single held-out-mean objective would collapse all three onto the average-score baseline.
+
+320 combinations on 60 validation groups.
+
+| mode | objective | alpha | tau_veto | lambda_fair | lambda_nov |
+| --- | --- | --- | --- | --- | --- |
+| consensus | mean of normalised held_mean and proxy_min | 1.00 | 0.35 | 0.45 | 0.00 |
+| discovery | novelty subject to held_mean >= 75% of best | 0.70 | 0.25 | 0.45 | 0.35 |
+| fair_rotation | proxy_min | 0.70 | 0.00 | 0.45 | 0.00 |
+
+**Two findings worth stating.** Every mode wanted `lambda_fair = 0.45`: serving the least-served member helps regardless of which objective is being maximised, which was not the expectation -- fairness was designed as a Fair Rotation feature, not a general one.
+
+And the unconstrained search chose `tau_veto = 0.00` for fair_rotation. That maximises the proxy floor by deleting the veto and enlarging the candidate pool -- trading a product guarantee (no member sits through a track they strongly object to) for a metric. **The fit was overridden and tau held at 0.35**, which is recorded here rather than quietly applied.
+
+
 ## What these numbers are not
 
 - **Not a claim about human satisfaction.** These are held-out play predictions on one day of ListenBrainz listens, not a measure of whether anyone enjoyed a playlist.
 - **Not a comparison to published benchmarks.** The dataset is built by this repository from a single daily dump; absolute values are not comparable to numbers computed on MovieLens or Last.fm-360K. Only the *relative* comparison between the rows above is meaningful, and that is the whole reason the baselines are there.
-- **Not group recommendation.** Everything here scores one user at a time. The group ranking, fairness metrics and the three modes are M4.
+- **Group metrics inherit that caveat and add one.** `held_*` numbers are grounded in real held-out plays, but `proxy_*` numbers use the model's own predicted satisfaction and so partly measure the model agreeing with itself. Where the two disagree, the held-out figure is the honest one.
+- **`held_gini` is not a fairness win on its own.** At this sparsity most members get zero hits, and a strategy that serves nobody scores a perfect Gini because everyone is equally unserved -- which is why `popularity` has the lowest inequality in the table and is still the worst strategy in it.
