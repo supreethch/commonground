@@ -25,6 +25,10 @@ from .group import SelectedTrack
 
 # Terms the ranker can produce, and whether a clause is worth showing for each.
 # A term absent from a track's contributions was not applied to that track.
+# How close to the veto threshold counts as "only just". Above this the track
+# cleared comfortably and saying so on every row is noise.
+NARROW_MARGIN = 0.12
+
 POSITIVE_TERMS = {"group_score", "novelty_bonus", "fairness_bonus", "popularity"}
 NEGATIVE_TERMS = {"diversity_penalty", "repetition_penalty"}
 
@@ -222,10 +226,18 @@ def explain(
     sources = [source for _, _, source in kept]
 
     # The veto note is a statement about the hard filter, not a scored term, so
-    # it is appended rather than competing for a clause slot.
+    # it is appended rather than competing for a clause slot -- and only when it
+    # says something.
+    #
+    # Every surviving track cleared the veto by definition, so noting it on all
+    # of them added forty-five identical characters to every row and made a
+    # varied playlist read as boilerplate. It appears only when the margin is
+    # slim: "this one nearly did not make it" is worth knowing, "this one passed
+    # comfortably, like the other nineteen" is not.
     veto_note = ""
-    if len(member_names) > 1 and len(track.member_scores) > 1 and facts["min_score"] >= tau_veto:
-        veto_note = " without strongly conflicting with anyone's dislikes"
+    margin = facts["min_score"] - tau_veto
+    if len(member_names) > 1 and len(track.member_scores) > 1 and 0 <= margin < NARROW_MARGIN:
+        veto_note = ", and it only just clears everyone's threshold"
 
     if not clauses:
         sentence = "Recommended for this group."
@@ -234,5 +246,6 @@ def explain(
     else:
         body = ", ".join(clauses[:-1]) + f", and {clauses[-1]}"
         sentence = f"Recommended because {body}{veto_note}."
+    sentence = sentence.replace(", and it only just clears", " — it only just clears")
 
     return Explanation(sentence=sentence, clauses=clauses, sources=sources, facts=facts)

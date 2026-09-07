@@ -171,6 +171,21 @@ class RoomCreateRequest(BaseModel):
         return value
 
 
+class RoomUpdateRequest(BaseModel):
+    """Change a room's mode. The one room setting worth changing after the fact:
+    the same members under a different mode is the comparison that shows what
+    the modes actually do."""
+
+    mode: str
+
+    @field_validator("mode")
+    @classmethod
+    def _known_mode(cls, value: str) -> str:
+        if value not in MODES:
+            raise ValueError(f"mode must be one of {list(MODES)}")
+        return value
+
+
 class RoomMemberResponse(BaseModel):
     user_id: uuid.UUID
     display_name: str

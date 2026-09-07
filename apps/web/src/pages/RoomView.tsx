@@ -6,18 +6,14 @@ import {
   type Playlist,
   type RoomDetail,
   type RoomEvent,
+  type RoomMode,
 } from "../api";
 import { useAuth } from "../auth";
+import { Avatar } from "../components/Avatar";
+import { ModeSwitch } from "../components/ModeSwitch";
+import { RoomSummary } from "../components/RoomSummary";
 import { TrackRow } from "../components/TrackRow";
-import {
-  Button,
-  Empty,
-  ErrorNote,
-  MODE_BLURBS,
-  MODE_LABELS,
-  Panel,
-  SkeletonRows,
-} from "../components/ui";
+import { Button, Empty, ErrorNote, Panel, SkeletonRows } from "../components/ui";
 
 /* The room: members, the invite link, the playlist, and live voting.
  *
@@ -37,10 +33,15 @@ export function RoomView({ roomId }: { roomId: string }) {
   const [myVotes, setMyVotes] = useState<Record<number, -1 | 0 | 1>>({});
   const [invite, setInvite] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [switching, setSwitching] = useState(false);
 
   const reloadPlaylist = useCallback(async () => {
     try {
-      setPlaylist(await api.playlist(roomId));
+      const latest = await api.playlist(roomId);
+      // A playlist whose tracks are gone -- the catalogue was rebuilt beneath
+      // it -- is not a playlist. Showing it as an empty list reads as a
+      // failure; treating it as "nothing yet" is both truer and actionable.
+      setPlaylist(latest.tracks.length > 0 ? latest : null);
     } catch (caught) {
       // 404 simply means nothing has been generated yet, which is a normal
       // state for a new room rather than an error to shout about.
@@ -86,6 +87,10 @@ export function RoomView({ roomId }: { roomId: string }) {
         void api.room(roomId).then(setRoom).catch(() => undefined);
         return;
       }
+      if (event.type === "mode_changed") {
+        void api.room(roomId).then(setRoom).catch(() => undefined);
+        return;
+      }
       if (event.type === "playlist_generated") {
         void reloadPlaylist().catch(() => undefined);
         return;
@@ -122,6 +127,22 @@ export function RoomView({ roomId }: { roomId: string }) {
       );
     } finally {
       setGenerating(false);
+    }
+  }
+
+  async function changeMode(mode: RoomMode) {
+    setSwitching(true);
+    setError(null);
+    try {
+      setRoom(await api.setMode(roomId, mode));
+      // Re-rank straight away. Switching the mode and then having to press
+      // another button to see what it did would bury the comparison that makes
+      // the modes legible.
+      setPlaylist(await api.generate(roomId, 20));
+    } catch (caught) {
+      setError(caught instanceof ApiError ? caught.message : "Could not change the mode.");
+    } finally {
+      setSwitching(false);
     }
   }
 
@@ -200,9 +221,9 @@ export function RoomView({ roomId }: { roomId: string }) {
         ← Rooms
       </a>
 
-      <header className="mt-3 mb-6">
-        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <h1 className="text-xl font-semibold tracking-tight">{room.name}</h1>
+      <header className="mt-3 mb-5">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <h1 className="text-2xl font-semibold tracking-tight">{room.name}</h1>
           <span className="flex items-center gap-1.5 text-xs text-ink-500">
             <span
               className={`h-1.5 w-1.5 rounded-full ${live ? "bg-up-400" : "bg-ink-600"}`}
@@ -211,55 +232,77 @@ export function RoomView({ roomId }: { roomId: string }) {
             {live ? "Live" : "Reconnecting"}
           </span>
         </div>
-        <p className="mt-1.5 text-sm text-ink-400">
-          <span className="text-ink-300">{MODE_LABELS[room.mode]}</span> —{" "}
-          {MODE_BLURBS[room.mode]}
-        </p>
       </header>
 
-      <Panel className="mb-5 p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-1.5">
+      <div className="mb-5 grid gap-4 sm:grid-cols-2">
+        <Panel className="p-4">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h2 className="text-xs font-medium uppercase tracking-wide text-ink-400">
+              {room.members.length} in the room
+            </h2>
+            <Button variant="ghost" onClick={() => void makeInvite()} disabled={!canInvite}>
+              Invite
+            </Button>
+          </div>
+          <ul className="flex flex-wrap gap-1.5">
             {room.members.map((member) => (
-              <span
+              <li
                 key={member.user_id}
-                title={member.onboarded ? member.display_name : `${member.display_name} — no taste profile yet`}
-                className={`rounded-full border px-2.5 py-1 text-xs ${
+                title={
+                  member.onboarded
+                    ? member.display_name
+                    : `${member.display_name} — no taste profile yet`
+                }
+                className={`flex items-center gap-1.5 rounded-full border py-1 pl-1 pr-2.5 text-xs ${
                   member.onboarded
                     ? "border-ink-700 text-ink-300"
                     : "border-dashed border-ink-700 text-ink-500"
                 }`}
               >
+                <Avatar name={member.display_name} size={18} />
                 {member.display_name}
-                {member.role === "owner" && <span className="ml-1 text-ink-600">·host</span>}
-              </span>
+              </li>
             ))}
-          </div>
-          <Button variant="ghost" onClick={() => void makeInvite()} disabled={!canInvite}>
-            Invite
-          </Button>
-        </div>
+          </ul>
 
-        {notOnboarded.length > 0 && (
-          <p className="mt-3 border-t border-ink-800 pt-3 text-xs leading-relaxed text-ink-500">
-            {notOnboarded.map((member) => member.display_name).join(", ")}{" "}
-            {notOnboarded.length === 1 ? "has" : "have"} no taste profile yet, so{" "}
-            {notOnboarded.length === 1 ? "their" : "their"} scores come from group priors
-            rather than a prediction.
-          </p>
-        )}
-
-        {invite && (
-          <div className="mt-3 border-t border-ink-800 pt-3">
-            <p className="mb-1.5 text-xs text-ink-400">
-              {copied ? "Link copied — share it with the room." : "Share this link:"}
+          {notOnboarded.length > 0 && (
+            <p className="mt-3 border-t border-ink-800 pt-2.5 text-xs leading-relaxed text-ink-500">
+              {notOnboarded.map((m) => m.display_name).join(", ")}{" "}
+              {notOnboarded.length === 1 ? "has" : "have"} no taste profile yet, so their
+              scores come from group priors rather than a prediction.
             </p>
-            <code className="block overflow-x-auto rounded bg-ink-950 px-2.5 py-2 text-xs text-ink-300">
-              {invite}
-            </code>
-          </div>
-        )}
-      </Panel>
+          )}
+
+          {invite && (
+            <div className="mt-3 border-t border-ink-800 pt-3">
+              <p className="mb-1.5 text-xs text-ink-400">
+                {copied ? "Link copied — share it with the room." : "Share this link:"}
+              </p>
+              <code className="block overflow-x-auto rounded bg-ink-950 px-2.5 py-2 text-xs text-ink-300">
+                {invite}
+              </code>
+            </div>
+          )}
+        </Panel>
+
+        <Panel className="p-4">
+          <h2 className="mb-3 text-xs font-medium uppercase tracking-wide text-ink-400">
+            Ranking mode
+          </h2>
+          <ModeSwitch
+            value={room.mode}
+            onChange={(mode) => void changeMode(mode)}
+            busy={switching}
+            disabled={generating}
+          />
+        </Panel>
+      </div>
+
+      {playlist && playlist.tracks.length > 0 && (
+        <div className="mb-5">
+          <RoomSummary playlist={playlist} members={room.members} />
+        </div>
+      )}
 
       {error && <div className="mb-4"><ErrorNote message={error} /></div>}
 

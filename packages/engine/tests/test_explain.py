@@ -197,16 +197,25 @@ def test_new_to_everyone_is_distinguished_from_merely_less_familiar() -> None:
 # ------------------------------------------------------------- veto note --
 
 
-def test_the_veto_note_appears_only_when_the_track_actually_cleared_it() -> None:
-    cleared = explain(
+def test_the_veto_note_appears_only_when_the_margin_is_slim() -> None:
+    """Every surviving track cleared the veto, so noting it on all of them is
+    boilerplate. It should only speak up when the track nearly did not make it."""
+    comfortable = explain(
         track({"group_score": 0.8}, [0.9, 0.7, 0.8]), member_names=NAMES, tau_veto=0.35
     )
-    borderline = explain(
-        track({"group_score": 0.8}, [0.9, 0.7, 0.1]), member_names=NAMES, tau_veto=0.35
+    narrow = explain(
+        track({"group_score": 0.8}, [0.9, 0.7, 0.40]), member_names=NAMES, tau_veto=0.35
     )
 
-    assert "without strongly conflicting" in cleared.sentence
-    assert "without strongly conflicting" not in borderline.sentence
+    assert "only just clears" not in comfortable.sentence
+    assert "only just clears" in narrow.sentence
+
+
+def test_no_veto_note_for_a_track_below_the_threshold() -> None:
+    # Such a track would have been filtered out; if one is rendered anyway, it
+    # must not claim to have cleared anything.
+    below = explain(track({"group_score": 0.8}, [0.9, 0.7, 0.1]), member_names=NAMES, tau_veto=0.35)
+    assert "clears" not in below.sentence
 
 
 def test_a_solo_member_gets_no_group_veto_language() -> None:

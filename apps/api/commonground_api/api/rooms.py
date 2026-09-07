@@ -43,6 +43,7 @@ from ..schemas import (
     RoomDetailResponse,
     RoomMemberResponse,
     RoomResponse,
+    RoomUpdateRequest,
     VoteRequest,
 )
 from ..security import decode_access_token, hash_token, new_invite_token
@@ -159,6 +160,20 @@ def list_rooms(session: SessionDep, user: CurrentUser) -> list[RoomResponse]:
 @router.get("/{room_id}", response_model=RoomDetailResponse)
 def get_room(room_id: uuid.UUID, session: SessionDep, user: CurrentUser) -> RoomDetailResponse:
     return _room_response(session, _require_member(session, room_id, user))
+
+
+@router.patch("/{room_id}", response_model=RoomDetailResponse)
+async def update_room(
+    room_id: uuid.UUID, body: RoomUpdateRequest, session: SessionDep, user: CurrentUser
+) -> RoomDetailResponse:
+    room = _require_member(session, room_id, user)
+    room.mode = body.mode
+    session.commit()
+    # Broadcast so everyone in the room sees the mode change, not just whoever
+    # pressed it -- a room where one person silently re-ranks for everybody is
+    # worse than one that says what happened.
+    await _emit(room_id, "mode_changed", mode=body.mode, changed_by=user.display_name)
+    return _room_response(session, room)
 
 
 @router.delete("/{room_id}", status_code=status.HTTP_204_NO_CONTENT)

@@ -253,6 +253,9 @@ export const api = {
   createRoom: (name: string, mode: RoomMode) =>
     request<RoomDetail>("/api/rooms", { method: "POST", body: { name, mode } }),
 
+  setMode: (id: string, mode: RoomMode) =>
+    request<RoomDetail>(`/api/rooms/${id}`, { method: "PATCH", body: { mode } }),
+
   deleteRoom: (id: string) => request<void>(`/api/rooms/${id}`, { method: "DELETE" }),
 
   createInvite: (roomId: string) =>
@@ -277,7 +280,7 @@ export const api = {
 };
 
 export interface RoomEvent {
-  type: "connected" | "member_joined" | "playlist_generated" | "vote";
+  type: "connected" | "member_joined" | "playlist_generated" | "vote" | "mode_changed";
   room_id: string;
   [key: string]: unknown;
 }

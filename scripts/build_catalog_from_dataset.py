@@ -123,7 +123,13 @@ def main(argv: list[str] | None = None) -> int:
             cur.execute("DELETE FROM recordings")
             cur.execute("DELETE FROM artists")
             cur.execute("DELETE FROM tags")
-            print("  cleared the previous catalogue")
+            # Playlists outlive the recordings they point at, because
+            # playlist_tracks cascades with the recording but the playlist row
+            # does not. That leaves a playlist with no tracks -- which the room
+            # then renders as an empty list rather than as "nothing generated
+            # yet". A rebuilt catalogue invalidates them all.
+            cur.execute("DELETE FROM playlists")
+            print("  cleared the previous catalogue and any playlists built on it")
 
         # --- tags ---------------------------------------------------------
         tag_ids: dict[str, int] = {}
