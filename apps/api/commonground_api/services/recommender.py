@@ -136,6 +136,15 @@ class RecommenderService:
                 self._snapshot = self._build(session)
             return self._snapshot
 
+    def peek(self) -> Snapshot | None:
+        """The cached snapshot, without building one.
+
+        /health must never trigger a fit: a health check that takes half a
+        second on a cold process looks like an outage to a host that is only
+        asking whether the port is open.
+        """
+        return self._snapshot
+
     def invalidate(self) -> None:
         """Drop the cached model. Called after an ingest changes the catalogue."""
         with self._lock:

@@ -11,12 +11,17 @@ from sqlalchemy import text
 from .api import auth, imports, profiles, rooms
 from .config import get_settings
 from .db import get_engine
+from .logging import RequestLogMiddleware, configure_logging
+from .services.recommender import recommender_service
 
 logger = logging.getLogger("commonground")
 
 
 def create_app() -> FastAPI:
     settings = get_settings()
+    configure_logging(
+        settings.log_level, as_json=settings.log_json or settings.environment == "production"
+    )
 
     app = FastAPI(
         title="CommonGround API",
@@ -24,6 +29,7 @@ def create_app() -> FastAPI:
         summary="Group music recommendation with per-track explanations",
     )
 
+    app.add_middleware(RequestLogMiddleware)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origin_list,
@@ -53,10 +59,27 @@ def create_app() -> FastAPI:
             logger.warning("health check could not reach the database: %s", exc)
             database = "unavailable"
 
+        # The model snapshot's age is reported because a cold process answers
+        # its first playlist request ~500ms slower, and that is worth being able
+        # to see rather than guess at from a latency graph.
+        snapshot = recommender_service.peek()
+
         return {
             "status": "ok" if database == "ok" else "degraded",
             "environment": settings.environment,
             "database": database,
+            "model": (
+                {
+                    "fitted": True,
+                    "users": snapshot.n_users,
+                    "items": snapshot.n_items,
+                    "interactions": snapshot.n_interactions,
+                    "fit_seconds": round(snapshot.fit_seconds, 3),
+                    "age_seconds": round(snapshot.age_seconds, 1),
+                }
+                if snapshot
+                else {"fitted": False}
+            ),
             # Unset means the in-process broadcaster, which is correct for a
             # single instance. See docs/architecture.md.
             "broadcaster": "redis" if settings.redis_url else "in-process",
