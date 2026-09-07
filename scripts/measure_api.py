@@ -86,12 +86,37 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--base", default="http://localhost:8010")
     parser.add_argument("--runs", type=int, default=30)
+    parser.add_argument(
+        "--allow-rate-limited",
+        action="store_true",
+        help=(
+            "measure even when the API has rate limiting on. The login, signup "
+            "and generate rows will be capped by the limiter rather than by "
+            "latency, so the result is not a latency measurement -- it is only "
+            "here as an escape hatch."
+        ),
+    )
     args = parser.parse_args(argv)
 
     client = Client(args.base)
-    status, _, _ = client.call("GET", "/health")
+    status, health, _ = client.call("GET", "/health")
     if status != 200:
         print(f"no API at {args.base} (health returned {status})")
+        return 2
+
+    # A per-IP limiter counts this script's 30 logins from localhost exactly as
+    # it would an attacker's, so login/signup/generate would report the limit,
+    # not the latency, and that number would then be written into
+    # docs/measurements.md. Refuse rather than record a misleading figure.
+    if health.get("rate_limiting") and not args.allow_rate_limited:
+        print(
+            "the API has rate limiting enabled -- login, signup and generate "
+            "would be throttled and the numbers would be meaningless.\n"
+            "restart the API with rate limiting off, for example:\n"
+            "  RATE_LIMIT_ENABLED=false ./.venv/bin/uvicorn "
+            "commonground_api.main:app --port 8010\n"
+            "or pass --allow-rate-limited to measure anyway."
+        )
         return 2
 
     email = f"measure-{uuid.uuid4().hex[:10]}@example.com"
@@ -169,6 +194,7 @@ def main(argv: list[str] | None = None) -> int:
                 "base": args.base,
                 "measured_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
                 "runs_per_endpoint": args.runs,
+                "rate_limiting": bool(health.get("rate_limiting")),
                 "note": (
                     "Measured over HTTP against a live server, so the numbers include "
                     "serialisation and the connection pool. The first playlist request "

@@ -312,6 +312,15 @@ def format_latency(record: dict) -> str:
         "",
         record["note"],
         "",
+    ]
+    if record.get("rate_limiting"):
+        lines += [
+            "> Measured with `--allow-rate-limited`: the API's per-IP limiter was "
+            "on, so the `login`, `signup` and generate rows are capped by the "
+            "limit and are **not** latency figures.",
+            "",
+        ]
+    lines += [
         "p50 and p95 rather than a mean. A mean hides the tail, and the tail is "
         "what a user notices: an endpoint averaging 40ms with a 900ms p95 feels "
         "broken one time in twenty, which is exactly often enough to be "
