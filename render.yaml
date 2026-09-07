@@ -1,0 +1,67 @@
+# Render blueprint for a $0 deployment of the API.
+#
+# The frontend is not here: it is a static bundle and goes to Vercel, which is
+# what a2transit does for the same reason -- a static host serves it from a CDN
+# for free and does not consume the API's instance hours.
+#
+# The database is NOT here either, and that is the important line. Render's free
+# PostgreSQL **expires 30 days after creation**, with a 14-day grace period
+# before deletion. A portfolio demo that dies a month after you stop watching it
+# is worse than no demo, because the link stays on the CV. DATABASE_URL points
+# at Neon instead: free, no card, no expiry, and it scales compute to zero.
+services:
+  - type: web
+    name: commonground-api
+    runtime: python
+    plan: free
+    # Must match the Neon region. Every request that touches Postgres pays the
+    # round trip, and a cross-country pairing measured 60-80ms per request on a
+    # sibling project.
+    region: ohio
+    buildCommand: pip install -e "packages/engine" -e "apps/api" "psycopg[binary]>=3.2"
+    # Migrations run at boot rather than at build: a Render build has no network
+    # route to Neon, so a build-time migration cannot reach the database it is
+    # meant to migrate.
+    startCommand: >-
+      python db/migrate.py &&
+      uvicorn commonground_api.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: LOG_JSON
+        value: "true"
+      # Render terminates TLS at a proxy. Without this every request appears to
+      # come from that proxy, so one client's failed logins would rate-limit
+      # every other visitor.
+      - key: TRUST_PROXY
+        value: "true"
+      # Unset on purpose. One free instance means the in-process broadcaster is
+      # correct, and Redis would be infrastructure serving no purpose. Setting
+      # REDIS_URL switches both the broadcaster and the rate limiter to the
+      # shared implementations.
+      - key: REDIS_URL
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+
+      # Generated once by Render and kept. A predictable signing key is a
+      # complete auth bypass, and the API refuses to boot without a real one in
+      # production.
+      - key: JWT_SECRET
+        generateValue: true
+
+      # --- set these in the Render dashboard, never in this file -------------
+      - key: DATABASE_URL
+        sync: false
+      - key: DEMO_USER_PASSWORD
+        sync: false
+      # MetaBrainz asks for a real contact address on automated requests.
+      - key: USER_AGENT
+        sync: false
+
+# No keepalive workflow, deliberately. Render allows 750 free instance-hours per
+# month *per workspace*, and two other projects already share this one. One
+# always-awake service costs ~730 hours; three would need ~2,190 and suspend all
+# of them. This service sleeps after 15 minutes and takes about a minute to wake,
+# which the README says plainly. See docs/deployment.md.

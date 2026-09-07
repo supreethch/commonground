@@ -4,9 +4,10 @@
 # Postgres is reachable, so CI is the only place guaranteed to run them -- a
 # service container is what stops that skip from silently becoming permanent.
 #
-# Playwright end-to-end joins this file in M6, when there is a deployment to run
-# it against. A workflow with a job that always fails gets ignored within a
-# week, which is worse than not having the job.
+# The e2e job runs the whole stack -- Postgres, the API, the built frontend --
+# and drives it in a real browser on desktop and a mobile viewport. Every
+# interesting bug in this project has been at a boundary the unit tests mock, so
+# this is the job most likely to catch the next one.
 
 name: ci
 
@@ -106,3 +107,76 @@ jobs:
       # deploy. Tests are separate so a failure says which of the two broke.
       - run: npm run build
       - run: npm test
+
+  e2e:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: commonground
+          POSTGRES_PASSWORD: commonground
+          POSTGRES_DB: commonground
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U commonground -d commonground"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://commonground:commonground@localhost:5432/commonground
+      DEMO_USER_PASSWORD: demo-read-only
+      USER_AGENT: "CommonGround CI (https://github.com/supreethchittaluri/commonground)"
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: apps/web/package-lock.json
+
+      - name: Install
+        run: |
+          pip install -e "packages/engine[dev]" -e "apps/api[dev]" "psycopg[binary]>=3.2"
+          npm ci --prefix apps/web
+
+      - name: Database and demo data
+        # The catalogue is built from a committed fixture rather than fetched:
+        # CI must not depend on MetaBrainz being up, and a 2GB dump has no place
+        # in a pull request.
+        run: |
+          python db/migrate.py
+          python scripts/seed_ci_catalogue.py
+          python scripts/seed.py
+
+      - name: Start the API
+        run: |
+          uvicorn commonground_api.main:app --port 8010 --log-level warning &
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:8010/health >/dev/null && break
+            sleep 1
+          done
+          curl -sf http://localhost:8010/health
+
+      - name: Playwright
+        working-directory: apps/web
+        env:
+          VITE_PROXY_TARGET: http://localhost:8010
+        run: |
+          npx playwright install --with-deps chromium
+          npx playwright test
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-traces
+          path: apps/web/test-results/
+          retention-days: 7

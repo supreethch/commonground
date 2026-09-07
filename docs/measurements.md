@@ -111,7 +111,7 @@ Grid `[0.0, 0.15, 0.35, 0.5, 0.65]` over four components, 300 validation users, 
 
 ## M4 -- group recommendation on ListenBrainz slice
 
-*Run 2026-09-06T19:14:45Z · commit `e62a82b` · engine 0.3.0 · config hash `899964bd8abb`*
+*Run 2026-09-06T23:59:35Z · commit `d3333e7` · engine 0.3.0 · config hash `20ac51d6e57b`*
 *Darwin arm64 python 3.12.14*
 
 200 synthetic groups of [3, 4, 5, 6] members, 20 tracks each.
@@ -192,7 +192,7 @@ Roughly 50 groups per kind, so **these cells are noisy and no conclusion should 
 
 ## M4 -- group recommendation on MovieLens-1M
 
-*Run 2026-09-06T19:14:52Z · commit `e62a82b` · engine 0.3.0 · config hash `a1a4e5443783`*
+*Run 2026-09-06T23:59:41Z · commit `d3333e7` · engine 0.3.0 · config hash `5f03c5ae69a7`*
 *Darwin arm64 python 3.12.14*
 
 200 synthetic groups of [3, 4, 5, 6] members, 20 tracks each.
@@ -286,6 +286,36 @@ Fitted on validation groups built from a split nested inside the training data. 
 **Two findings worth stating.** Every mode wanted `lambda_fair = 0.45`: serving the least-served member helps regardless of which objective is being maximised, which was not the expectation -- fairness was designed as a Fair Rotation feature, not a general one.
 
 And the unconstrained search chose `tau_veto = 0.00` for fair_rotation. That maximises the proxy floor by deleting the veto and enlarging the candidate pool -- trading a product guarantee (no member sits through a track they strongly object to) for a metric. **The fit was overridden and tau held at 0.35**, which is recorded here rather than quietly applied.
+
+
+## API latency
+
+*Measured 2026-09-06T23:55:34Z against `http://localhost:8010`, 25 runs per endpoint.*
+
+Measured over HTTP against a live server, so the numbers include serialisation and the connection pool. The first playlist request pays to fit the recommender and is reported separately as a cold cost rather than a request cost.
+
+p50 and p95 rather than a mean. A mean hides the tail, and the tail is what a user notices: an endpoint averaging 40ms with a 900ms p95 feels broken one time in twenty, which is exactly often enough to be remembered.
+
+| endpoint | p50 | p95 | max | n |
+| --- | --- | --- | --- | --- |
+| `POST /api/auth/signup` | 36.4ms | 36.4ms | 36.4ms | 1 |
+| `POST /api/auth/login` | 27.5ms | 29.5ms | 32.7ms | 20 |
+| `POST /api/rooms/{id}/playlist` | 15.9ms | 18.0ms | 18.2ms | 19 |
+| `GET /api/rooms/{id}/playlist` | 4.9ms | 5.8ms | 6.1ms | 25 |
+| `GET /api/profile` | 4.0ms | 5.0ms | 6.1ms | 25 |
+| `GET /api/tags` | 3.5ms | 4.3ms | 4.7ms | 25 |
+| `GET /api/rooms/{id}` | 3.5ms | 4.1ms | 5.2ms | 25 |
+| `GET /api/auth/me` | 2.9ms | 3.6ms | 4.6ms | 25 |
+| `GET /api/artists?q=` | 2.7ms | 3.6ms | 4.4ms | 25 |
+| `GET /api/rooms` | 3.0ms | 3.5ms | 5.4ms | 25 |
+| `GET /api/artists` | 3.0ms | 3.4ms | 3.7ms | 25 |
+| `GET /health` | 1.6ms | 1.9ms | 7.1ms | 25 |
+
+**First playlist on a cold process: 554.7ms.** That is the model being fitted, not a request being served -- the snapshot is cached for the life of the process, and `/health` reports its age so a slow first request is explicable rather than mysterious.
+
+Login is the slowest endpoint and should be: almost all of those 27ms are Argon2, deliberately. It is also why the login endpoint is rate limited -- at 27ms a guess, an open endpoint accepts roughly 37 password attempts a second.
+
+**No index was added on the strength of these numbers.** Nothing is slow at this data size, and query plans on the hot path already use indexes. The artist search uses a leading-wildcard `ILIKE` that no btree can serve; at 588 artists it costs 2.7ms, and the honest response is to record the threshold rather than add a trigram index against a problem this project does not have.
 
 
 ## What these numbers are not

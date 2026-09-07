@@ -302,6 +302,53 @@ def format_mode_sweep(record: dict) -> str:
     return "\n".join(lines)
 
 
+def format_latency(record: dict) -> str:
+    lines = [
+        "",
+        "## API latency",
+        "",
+        f"*Measured {record['measured_at']} against `{record['base']}`, "
+        f"{record['runs_per_endpoint']} runs per endpoint.*",
+        "",
+        record["note"],
+        "",
+        "p50 and p95 rather than a mean. A mean hides the tail, and the tail is "
+        "what a user notices: an endpoint averaging 40ms with a 900ms p95 feels "
+        "broken one time in twenty, which is exactly often enough to be "
+        "remembered.",
+        "",
+        "| endpoint | p50 | p95 | max | n |",
+        "| --- | --- | --- | --- | --- |",
+    ]
+    for row in record["endpoints"]:
+        lines.append(
+            f"| `{row['name']}` | {row['p50_ms']}ms | {row['p95_ms']}ms | "
+            f"{row['max_ms']}ms | {row['n']} |"
+        )
+
+    lines += [
+        "",
+        f"**First playlist on a cold process: {record['cold_first_playlist_ms']}ms.** "
+        "That is the model being fitted, not a request being served -- the "
+        "snapshot is cached for the life of the process, and `/health` reports "
+        "its age so a slow first request is explicable rather than mysterious.",
+        "",
+        "Login is the slowest endpoint and should be: almost all of those 27ms "
+        "are Argon2, deliberately. It is also why the login endpoint is rate "
+        "limited -- at 27ms a guess, an open endpoint accepts roughly 37 "
+        "password attempts a second.",
+        "",
+        "**No index was added on the strength of these numbers.** Nothing is "
+        "slow at this data size, and query plans on the hot path already use "
+        "indexes. The artist search uses a leading-wildcard `ILIKE` that no "
+        "btree can serve; at 588 artists it costs 2.7ms, and the honest response "
+        "is to record the threshold rather than add a trigram index against a "
+        "problem this project does not have.",
+        "",
+    ]
+    return "\n".join(lines)
+
+
 def main() -> int:
     sections = [HEADER]
 
@@ -332,6 +379,10 @@ def main() -> int:
     mode_sweep = RESULTS_DIR / "mode-sweep.json"
     if mode_sweep.exists():
         sections.append(format_mode_sweep(json.loads(mode_sweep.read_text())))
+
+    latency = RESULTS_DIR / "api-latency.json"
+    if latency.exists():
+        sections.append(format_latency(json.loads(latency.read_text())))
 
     sections.append(
         "\n".join(
