@@ -255,10 +255,21 @@ def test_repetition_penalty_only_looks_back_over_its_window() -> None:
 
 
 def test_the_three_modes_are_registered_and_distinct() -> None:
+    """What separates the modes after fitting, which is not what was designed.
+
+    The sweep gave every mode lambda_fair=0.45 -- serving the least-served
+    member helps whatever you are maximising -- so 'fair rotation weights
+    fairness more' is no longer true and asserting it would pin the code to an
+    intention the measurement disproved. What still separates them: only
+    Discovery rewards novelty and loosens the veto, and Consensus leans hardest
+    on the mean, holding its floor through the fairness term instead.
+    """
     assert set(MODES) == {"consensus", "discovery", "fair_rotation"}
-    assert DISCOVERY.lambda_nov > CONSENSUS.lambda_nov
-    assert FAIR_ROTATION.lambda_fair > CONSENSUS.lambda_fair
-    assert FAIR_ROTATION.alpha < CONSENSUS.alpha < DISCOVERY.alpha
+
+    assert DISCOVERY.lambda_nov > 0
+    assert CONSENSUS.lambda_nov == FAIR_ROTATION.lambda_nov == 0
+    assert DISCOVERY.tau_veto < CONSENSUS.tau_veto
+    assert CONSENSUS.alpha > FAIR_ROTATION.alpha
 
 
 def test_modes_produce_different_playlists_on_the_same_scores() -> None:
@@ -288,9 +299,13 @@ def test_discovery_is_more_novel_than_consensus() -> None:
 
 
 def test_mode_config_is_immutable_and_copies_with_overrides() -> None:
+    original = CONSENSUS.alpha
     tweaked = CONSENSUS.with_params(alpha=0.9)
+
     assert tweaked.alpha == 0.9
-    assert CONSENSUS.alpha == 0.5, "the shared preset must not be mutated"
+    # Read the value rather than hardcoding it: this test is about the preset
+    # not being mutated, not about which number it happens to hold.
+    assert CONSENSUS.alpha == original, "the shared preset must not be mutated"
 
 
 # -------------------------------------------------------------- baselines --

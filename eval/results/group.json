@@ -29,32 +29,12 @@
       "als": 0.35
     },
     "_hybrid_note": "Weights fitted in M3 by scripts/sweep_weights.py on a validation split nested inside train. The group layer uses the same scorer the individual evaluation reported on, so a difference in the group results is attributable to the group layer.",
-    "mode_overrides": {
-      "consensus": {
-        "alpha": 1.0,
-        "tau_veto": 0.35,
-        "lambda_fair": 0.45,
-        "lambda_nov": 0.0
-      },
-      "discovery": {
-        "alpha": 0.7,
-        "tau_veto": 0.25,
-        "lambda_fair": 0.45,
-        "lambda_nov": 0.35
-      },
-      "fair_rotation": {
-        "alpha": 0.7,
-        "tau_veto": 0.35,
-        "lambda_fair": 0.45,
-        "lambda_nov": 0.0
-      }
-    },
-    "_mode_fit_note": "Fitted by scripts/sweep_modes.py on validation groups nested inside train; the test groups were not seen. One deliberate override: the unconstrained fit chose tau_veto=0.0 for fair_rotation, which maximises proxy_min by removing the veto and enlarging the candidate pool. That trades a product guarantee -- no member sits through a track they strongly object to -- for a proxy metric, so tau is held at 0.35. The unconstrained result is recorded in eval/results/mode-sweep.json."
+    "_mode_fit_note": "Mode parameters are the engine's own defaults, which ARE the fitted values from scripts/sweep_modes.py -- fitted on validation groups nested inside train, with the test groups unseen. They live in commonground_engine.group rather than here so the running app and this evaluation cannot drift apart. One deliberate override is recorded there: the unconstrained fit chose tau_veto=0.0 for fair_rotation, which maximises proxy_min by deleting the veto, and that trades a product guarantee for a metric."
   },
-  "config_hash": "899964bd8abb",
-  "git_sha": "e62a82b",
+  "config_hash": "20ac51d6e57b",
+  "git_sha": "d3333e7",
   "engine_version": "0.3.0",
-  "run_at": "2026-09-06T19:14:45Z",
+  "run_at": "2026-09-06T23:59:35Z",
   "platform": "Darwin arm64 python 3.12.14",
   "dataset": {
     "path": "data/datasets/lb-day",
@@ -114,7 +94,7 @@
     }
   },
   "k": 20,
-  "total_seconds": 5.59,
+  "total_seconds": 5.62,
   "comparisons": {
     "consensus_vs_average_score": {
       "held_mean": {
@@ -159,7 +139,7 @@
     {
       "strategy": "consensus",
       "groups_evaluated": 200,
-      "seconds": 0.291,
+      "seconds": 0.294,
       "overall": {
         "held_gini": 0.241438,
         "held_hits_total": 0.6,
@@ -251,7 +231,7 @@
     {
       "strategy": "discovery",
       "groups_evaluated": 200,
-      "seconds": 0.625,
+      "seconds": 0.619,
       "overall": {
         "held_gini": 0.181133,
         "held_hits_total": 0.4,
@@ -343,7 +323,7 @@
     {
       "strategy": "fair_rotation",
       "groups_evaluated": 200,
-      "seconds": 0.289,
+      "seconds": 0.291,
       "overall": {
         "held_gini": 0.251688,
         "held_hits_total": 0.565,
@@ -435,7 +415,7 @@
     {
       "strategy": "average-score",
       "groups_evaluated": 200,
-      "seconds": 0.533,
+      "seconds": 0.542,
       "overall": {
         "held_gini": 0.236187,
         "held_hits_total": 0.635,
@@ -527,7 +507,7 @@
     {
       "strategy": "least-misery",
       "groups_evaluated": 200,
-      "seconds": 0.53,
+      "seconds": 0.539,
       "overall": {
         "held_gini": 0.182736,
         "held_hits_total": 0.43,

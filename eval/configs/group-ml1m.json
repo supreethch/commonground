@@ -27,26 +27,6 @@
     "als": 0.35
   },
   "_hybrid_note": "Weights fitted in M3 by scripts/sweep_weights.py on a validation split nested inside train. The group layer uses the same scorer the individual evaluation reported on, so a difference in the group results is attributable to the group layer.",
-  "mode_overrides": {
-    "consensus": {
-      "alpha": 1.0,
-      "tau_veto": 0.35,
-      "lambda_fair": 0.45,
-      "lambda_nov": 0.0
-    },
-    "discovery": {
-      "alpha": 0.7,
-      "tau_veto": 0.25,
-      "lambda_fair": 0.45,
-      "lambda_nov": 0.35
-    },
-    "fair_rotation": {
-      "alpha": 0.7,
-      "tau_veto": 0.35,
-      "lambda_fair": 0.45,
-      "lambda_nov": 0.0
-    }
-  },
-  "_mode_fit_note": "Fitted by scripts/sweep_modes.py on validation groups nested inside train; the test groups were not seen. One deliberate override: the unconstrained fit chose tau_veto=0.0 for fair_rotation, which maximises proxy_min by removing the veto and enlarging the candidate pool. That trades a product guarantee -- no member sits through a track they strongly object to -- for a proxy metric, so tau is held at 0.35. The unconstrained result is recorded in eval/results/mode-sweep.json.",
+  "_mode_fit_note": "Mode parameters are the engine's own defaults, which ARE the fitted values from scripts/sweep_modes.py -- fitted on validation groups nested inside train, with the test groups unseen. They live in commonground_engine.group rather than here so the running app and this evaluation cannot drift apart. One deliberate override is recorded there: the unconstrained fit chose tau_veto=0.0 for fair_rotation, which maximises proxy_min by deleting the veto, and that trades a product guarantee for a metric.",
   "_repetition_note": "MovieLens has no artist, so the repetition axis is the film's primary genre. With only 18 genres, max_artist_share is high for every strategy and is not comparable to the music table's value -- there it counts one artist among thousands."
 }

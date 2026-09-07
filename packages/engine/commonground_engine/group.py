@@ -53,16 +53,31 @@ class ModeConfig:
         return replace(self, **overrides)
 
 
-# The documented starting points. Fitted values land in eval/results and are
-# reported in docs/measurements.md; these are what the fit starts from.
-CONSENSUS = ModeConfig(name="consensus", alpha=0.5, tau_veto=0.35, lambda_div=0.15)
-DISCOVERY = ModeConfig(name="discovery", alpha=0.7, tau_veto=0.25, lambda_div=0.30, lambda_nov=0.35)
+# The **fitted** parameters, from scripts/sweep_modes.py on validation groups
+# nested inside the training split. These are the values docs/measurements.md
+# reports, and therefore the values the running app must use: a product whose
+# defaults differ from the ones its own evaluation measured is reporting numbers
+# about a system nobody is running.
+#
+# The design intentions these started from are in docs/recommender.md, alongside
+# what the fit changed and the one place the fit was overridden.
+CONSENSUS = ModeConfig(
+    name="consensus", alpha=1.0, tau_veto=0.35, lambda_div=0.15, lambda_fair=0.45
+)
+DISCOVERY = ModeConfig(
+    name="discovery",
+    alpha=0.7,
+    tau_veto=0.25,
+    lambda_div=0.30,
+    lambda_nov=0.35,
+    lambda_fair=0.45,
+)
 FAIR_ROTATION = ModeConfig(
     name="fair_rotation",
-    alpha=0.3,
+    alpha=0.7,
     tau_veto=0.35,
     lambda_div=0.15,
-    lambda_nov=0.05,
+    lambda_nov=0.0,
     lambda_fair=0.45,
 )
 

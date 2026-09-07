@@ -1,0 +1,105 @@
+{
+  "base": "http://localhost:8010",
+  "measured_at": "2026-09-06T23:55:34Z",
+  "runs_per_endpoint": 25,
+  "note": "Measured over HTTP against a live server, so the numbers include serialisation and the connection pool. The first playlist request pays to fit the recommender and is reported separately as a cold cost rather than a request cost.",
+  "cold_first_playlist_ms": 554.7,
+  "endpoints": [
+    {
+      "name": "POST /api/auth/signup",
+      "n": 1,
+      "errors": 0,
+      "p50_ms": 36.4,
+      "p95_ms": 36.4,
+      "max_ms": 36.4
+    },
+    {
+      "name": "POST /api/auth/login",
+      "n": 20,
+      "errors": 5,
+      "p50_ms": 27.5,
+      "p95_ms": 29.5,
+      "max_ms": 32.7
+    },
+    {
+      "name": "POST /api/rooms/{id}/playlist",
+      "n": 19,
+      "errors": 6,
+      "p50_ms": 15.9,
+      "p95_ms": 18.0,
+      "max_ms": 18.2
+    },
+    {
+      "name": "GET /api/rooms/{id}/playlist",
+      "n": 25,
+      "errors": 0,
+      "p50_ms": 4.9,
+      "p95_ms": 5.8,
+      "max_ms": 6.1
+    },
+    {
+      "name": "GET /api/profile",
+      "n": 25,
+      "errors": 0,
+      "p50_ms": 4.0,
+      "p95_ms": 5.0,
+      "max_ms": 6.1
+    },
+    {
+      "name": "GET /api/tags",
+      "n": 25,
+      "errors": 0,
+      "p50_ms": 3.5,
+      "p95_ms": 4.3,
+      "max_ms": 4.7
+    },
+    {
+      "name": "GET /api/rooms/{id}",
+      "n": 25,
+      "errors": 0,
+      "p50_ms": 3.5,
+      "p95_ms": 4.1,
+      "max_ms": 5.2
+    },
+    {
+      "name": "GET /api/auth/me",
+      "n": 25,
+      "errors": 0,
+      "p50_ms": 2.9,
+      "p95_ms": 3.6,
+      "max_ms": 4.6
+    },
+    {
+      "name": "GET /api/artists?q=",
+      "n": 25,
+      "errors": 0,
+      "p50_ms": 2.7,
+      "p95_ms": 3.6,
+      "max_ms": 4.4
+    },
+    {
+      "name": "GET /api/rooms",
+      "n": 25,
+      "errors": 0,
+      "p50_ms": 3.0,
+      "p95_ms": 3.5,
+      "max_ms": 5.4
+    },
+    {
+      "name": "GET /api/artists",
+      "n": 25,
+      "errors": 0,
+      "p50_ms": 3.0,
+      "p95_ms": 3.4,
+      "max_ms": 3.7
+    },
+    {
+      "name": "GET /health",
+      "n": 25,
+      "errors": 0,
+      "p50_ms": 1.6,
+      "p95_ms": 1.9,
+      "max_ms": 7.1
+    }
+  ]
+}
