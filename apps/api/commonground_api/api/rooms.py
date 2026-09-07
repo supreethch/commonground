@@ -13,6 +13,7 @@ from fastapi import (
     Depends,
     HTTPException,
     Query,
+    Request,
     WebSocket,
     WebSocketDisconnect,
     status,
@@ -32,6 +33,7 @@ from ..models import (
     User,
     Vote,
 )
+from ..ratelimit import GENERATE, enforce
 from ..realtime import Event, get_broadcaster
 from ..schemas import (
     InviteResponse,
@@ -292,6 +294,7 @@ def _serialise_playlist(session: Session, playlist: Playlist) -> PlaylistRespons
 
 @router.post("/{room_id}/playlist", response_model=PlaylistResponse, status_code=201)
 async def generate_playlist(
+    request: Request,
     room_id: uuid.UUID,
     session: SessionDep,
     # CurrentUser, not WritableUser: generating a playlist is the demo. It
@@ -300,6 +303,10 @@ async def generate_playlist(
     user: CurrentUser,
     k: int = Query(default=20, ge=1, le=50),
 ) -> PlaylistResponse:
+    # The most expensive endpoint in the app: it scores the catalogue for every
+    # member. Cheap enough for a person clicking regenerate, not cheap enough to
+    # leave open to a loop.
+    enforce(request, GENERATE)
     room = _require_member(session, room_id, user)
     members = _members(session, room_id)
     member_ids = [membership.user_id for membership, _ in members]

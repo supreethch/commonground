@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import pytest
 from commonground_api.config import DEV_JWT_SECRET, Settings
+from commonground_api.ratelimit import LOGIN
 from commonground_api.security import (
     create_access_token,
     decode_access_token,
@@ -184,3 +185,58 @@ def test_production_refuses_to_start_with_the_example_secret() -> None:
 
     # A real secret is accepted.
     assert Settings(environment="production", jwt_secret="x" * 48)
+
+
+# ------------------------------------------------------------ rate limiting --
+
+
+def test_repeated_failed_logins_are_throttled(client, register) -> None:
+    """Argon2 makes a guess expensive; it does not make a million guesses
+    impossible. Measured at 27ms per login, an open endpoint accepts roughly 37
+    attempts a second."""
+    account = register()
+    body = {"email": account["email"], "password": "not the password"}
+
+    # Comfortably past the limit, whatever it is set to -- a test that only
+    # trips a specific number breaks every time the limit is retuned.
+    attempts = LOGIN.limit + 5
+    statuses = [client.post("/api/auth/login", json=body).status_code for _ in range(attempts)]
+
+    assert 429 in statuses, "an unthrottled login endpoint is a brute-force oracle"
+    # The limit must bite after several attempts, not on the first one -- a
+    # person mistyping a password twice should not be locked out.
+    assert statuses[:3] == [401, 401, 401]
+
+
+def test_a_throttled_response_says_when_to_retry(client, register) -> None:
+    account = register()
+    body = {"email": account["email"], "password": "wrong"}
+    response = None
+    for _ in range(LOGIN.limit + 5):
+        response = client.post("/api/auth/login", json=body)
+        if response.status_code == 429:
+            break
+
+    assert response is not None and response.status_code == 429
+    assert response.headers.get("Retry-After")
+    assert "Try again in" in response.json()["detail"]
+
+
+def test_signup_is_throttled_separately_from_login(client) -> None:
+    """Separate buckets: exhausting one must not lock the other."""
+    for index in range(8):
+        client.post(
+            "/api/auth/signup",
+            json={
+                "email": f"burst-{index}@example.com",
+                "password": "correct horse battery",
+                "display_name": "Burst",
+            },
+        )
+    # Signup is now exhausted; login for an existing account still answers.
+    assert (
+        client.post(
+            "/api/auth/login", json={"email": "nobody@example.com", "password": "x"}
+        ).status_code
+        == 401
+    )

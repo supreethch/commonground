@@ -44,6 +44,18 @@ class Settings(BaseSettings):
 
     cors_origins: str = "http://localhost:5173"
 
+    # Behind a TLS-terminating proxy every request arrives from the proxy's
+    # address, so X-Forwarded-For is the only way to tell clients apart. It is
+    # honoured *only* when this is set, because a client can forge that header:
+    # trusting it unconditionally would let an attacker rotate the value and
+    # never be rate limited at all.
+    trust_proxy: bool = False
+
+    log_level: str = "INFO"
+    # JSON in production where a log viewer reads it; readable lines locally
+    # where a person does.
+    log_json: bool = False
+
     # An upload larger than this is rejected before it is read into memory.
     max_import_bytes: int = 25 * 1024 * 1024
 

@@ -4,12 +4,13 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from ..deps import CurrentUser, SessionDep, SettingsDep
 from ..models import RefreshToken, User
+from ..ratelimit import LOGIN, SIGNUP, enforce
 from ..schemas import (
     LoginRequest,
     RefreshRequest,
@@ -51,7 +52,10 @@ def _issue_tokens(session, settings, user: User) -> TokenResponse:
 
 
 @router.post("/signup", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
-def signup(body: SignupRequest, session: SessionDep, settings: SettingsDep) -> TokenResponse:
+def signup(
+    request: Request, body: SignupRequest, session: SessionDep, settings: SettingsDep
+) -> TokenResponse:
+    enforce(request, SIGNUP)
     user = User(
         email=body.email,
         password_hash=hash_password(body.password),
@@ -73,7 +77,13 @@ def signup(body: SignupRequest, session: SessionDep, settings: SettingsDep) -> T
 
 
 @router.post("/login", response_model=TokenResponse)
-def login(body: LoginRequest, session: SessionDep, settings: SettingsDep) -> TokenResponse:
+def login(
+    request: Request, body: LoginRequest, session: SessionDep, settings: SettingsDep
+) -> TokenResponse:
+    # Argon2 makes each guess expensive; it does not make a million guesses
+    # impossible. Measured at 27ms per login, an unthrottled endpoint accepts
+    # roughly 37 attempts a second from one client.
+    enforce(request, LOGIN)
     user = session.scalar(select(User).where(User.email == body.email))
     if user is None:
         # Spend the same Argon2 time as a real verification, so a missing

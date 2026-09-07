@@ -29,6 +29,7 @@ from commonground_api.config import Settings  # noqa: E402
 from commonground_api.db import get_session, normalise_url  # noqa: E402
 from commonground_api.deps import get_settings  # noqa: E402
 from commonground_api.main import create_app  # noqa: E402
+from commonground_api.ratelimit import reset_limiter  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 from sqlalchemy import create_engine, text  # noqa: E402
 from sqlalchemy.orm import Session  # noqa: E402
@@ -82,6 +83,15 @@ def session(engine) -> Iterator[Session]:
         db.close()
         transaction.rollback()
         connection.close()
+
+
+@pytest.fixture(autouse=True)
+def _fresh_rate_limiter():
+    """Counters are process-global, so without this the sixth test to sign up
+    gets a 429 from the fifth test's traffic."""
+    reset_limiter()
+    yield
+    reset_limiter()
 
 
 @pytest.fixture

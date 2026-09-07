@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile, status
 from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
@@ -13,6 +13,7 @@ from ..deps import CurrentUser, SessionDep, SettingsDep, WritableUser
 from ..imports import FORMATS, ParseResult, UnknownFormatError, detect_format, parse
 from ..imports.matching import match_key
 from ..models import Artist, Import, Listen, ProfileArtist, Recording, RecordingArtist
+from ..ratelimit import IMPORT, enforce
 from ..schemas import ImportResponse, ImportResultResponse
 
 router = APIRouter(prefix="/api/imports", tags=["imports"])
@@ -121,12 +122,15 @@ def _profile_from_listens(session, user_id: uuid.UUID) -> None:
 
 @router.post("", response_model=ImportResultResponse, status_code=status.HTTP_201_CREATED)
 async def upload_import(
+    request: Request,
     session: SessionDep,
     settings: SettingsDep,
     user: WritableUser,
     file: UploadFile = File(...),
     export_format: str = Form(default="auto"),
 ) -> ImportResultResponse:
+    # A 25MB parse plus an entity-resolution pass over the whole catalogue.
+    enforce(request, IMPORT)
     payload = await file.read(settings.max_import_bytes + 1)
     if len(payload) > settings.max_import_bytes:
         raise HTTPException(
