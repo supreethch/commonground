@@ -195,7 +195,9 @@ def main(argv: list[str] | None = None) -> int:
                             "VALUES (%s, %s, 1.0) ON CONFLICT DO NOTHING",
                             (artist_ids[name], tag_id),
                         )
-        print(f"  {len(artist_ids):,} artists")
+        # Keyed by the raw name, but identity is uuid5 over the normalised
+        # one, so "BTS" and "bts" are two keys and one row. Report rows.
+        print(f"  {len(set(artist_ids.values())):,} artists")
 
         # --- recordings ---------------------------------------------------
         ordered = sorted(keep)
@@ -315,7 +317,7 @@ def main(argv: list[str] | None = None) -> int:
         tagged = cur.fetchone()[0]
 
     print(
-        f"\nartists    {len(artist_ids):,} ({tagged:,} with genres)\n"
+        f"\nartists    {len(set(artist_ids.values())):,} ({tagged:,} with genres)\n"
         f"recordings {len(item_to_recording):,}\n"
         f"listeners  {listeners:,}\n"
         f"listens    {listens:,} ({written:,} written)"
