@@ -1,4 +1,4 @@
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
@@ -23,5 +23,9 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./src/test-setup.ts"],
     globals: true,
+    // Vitest's default glob also matches `e2e/*.spec.ts`, which are Playwright
+    // tests -- loading them here throws "did not expect test.describe()". They
+    // run under Playwright, not Vitest.
+    exclude: [...configDefaults.exclude, "e2e/**"],
   },
 });
