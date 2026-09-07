@@ -11,6 +11,13 @@ import { expect, test } from "@playwright/test";
  */
 
 test.describe("README screenshots", () => {
+  // Desktop only. The mobile project would re-run every test and overwrite the
+  // committed PNGs with Pixel-7-emulated renders; the mobile shot is taken here
+  // with an explicit viewport instead.
+  test.beforeEach(({}, testInfo) => {
+    test.skip(testInfo.project.name !== "desktop", "screenshots are generated on desktop");
+  });
+
   test("room with playlist", async ({ page }) => {
     await page.setViewportSize({ width: 1180, height: 1000 });
     await page.goto("/");
