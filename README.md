@@ -10,6 +10,7 @@ driving the whole hour, whether anyone is sitting through something they have
 explicitly rejected — and tells you, per track, in a sentence, why it is there.
 
 <p>
+  <a href="https://commonground-alpha.vercel.app"><img alt="live demo" src="https://img.shields.io/badge/demo-live-4ade80"></a>
   <img alt="Python 3.12" src="https://img.shields.io/badge/python-3.12-3776ab?logo=python&logoColor=white">
   <img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white">
   <img alt="React 19" src="https://img.shields.io/badge/React_19-Vite-61dafb?logo=react&logoColor=black">
@@ -25,9 +26,11 @@ slot for whoever the room has served least — Alex, then Rio, then Nina — and
 reason on every track is generated from the arithmetic that ranked it, not
 written next to it.</sub>
 
-> **Status: milestone 6 of 6.** Not yet deployed — the blueprints are written
-> and verified, the live link is the last step. Everything below runs locally
-> with `docker compose up` and the commands in
+> **[Live demo →](https://commonground-alpha.vercel.app)** — open it and press
+> **Try the demo account**. The API runs on a free instance that sleeps after 15
+> minutes of no traffic, so the first request after an idle period takes about a
+> minute to wake and fit the model; it is quick after that. Everything also runs
+> locally with `docker compose up` — see
 > [docs/development.md](docs/development.md).
 
 ## The thing this project is actually about
