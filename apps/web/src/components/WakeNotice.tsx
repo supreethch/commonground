@@ -1,16 +1,21 @@
 import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
 
-/* Saying out loud why the first request is slow.
+/* Saying out loud why a request is taking so long.
  *
- * The API runs on a free tier that suspends the service after 15 minutes
- * without traffic, so the first visitor of the hour pays for starting it. That
- * is a hosting cost, not a bug, but a spinner cannot say so -- and a spinner
- * that sits there for most of a minute reads as broken, which is the worst
- * possible first impression for a demo someone was linked to.
+ * Two waits on this demo are long enough to look like a hang, and neither is a
+ * bug a spinner can explain:
+ *
+ *   - Starting the API. It runs on a free tier that suspends the service when
+ *     it goes idle, so one visitor pays to start it back up.
+ *   - Fitting the model. The recommender is fitted in-process and cached, so
+ *     the first playlist after a restart pays for it -- measured at 21.8s on
+ *     the deployed instance -- and the single free instance is blocked while
+ *     it happens.
  *
  * Deliberately silent below the threshold: a warm sign-in already takes a
- * couple of seconds because Argon2 is meant to be slow, and announcing a cold
- * start on every normal login would be a lie that trained people to ignore it.
+ * couple of seconds because Argon2 is meant to be slow, and announcing a delay
+ * on every normal login would be a lie that trained people to ignore it.
  */
 
 const THRESHOLD_MS = 3000;
@@ -37,17 +42,40 @@ export function useElapsedWhile(active: boolean, thresholdMs = THRESHOLD_MS): nu
   return elapsed;
 }
 
-export function WakeNotice({ seconds, className = "" }: { seconds: number | null; className?: string }) {
+function Notice({ seconds, className, children }: {
+  seconds: number | null;
+  className: string;
+  children: ReactNode;
+}) {
   if (seconds === null) return null;
   return (
     <p
       role="status"
       className={`rounded-panel border border-ink-800 bg-ink-900 px-3 py-2.5 text-xs leading-relaxed text-ink-400 ${className}`}
     >
-      <span className="text-ink-200">Starting the server.</span> The free tier suspends it
-      after 15 minutes idle, so the first request has to boot the API and load the model.
-      Everything is quick once it is up.{" "}
-      <span className="tabular text-ink-500">{seconds}s</span>
+      {children} <span className="tabular text-ink-500">{seconds}s</span>
     </p>
+  );
+}
+
+/** The API is being started. */
+export function WakeNotice({ seconds, className = "" }: { seconds: number | null; className?: string }) {
+  return (
+    <Notice seconds={seconds} className={className}>
+      <span className="text-ink-200">Starting the server.</span> The free tier suspends it
+      when it goes idle, so the first request has to boot the API. Everything is quick
+      once it is up.
+    </Notice>
+  );
+}
+
+/** The recommender is being fitted -- once per server start, not per playlist. */
+export function FitNotice({ seconds, className = "" }: { seconds: number | null; className?: string }) {
+  return (
+    <Notice seconds={seconds} className={className}>
+      <span className="text-ink-200">Fitting the recommendation model.</span> It learns from
+      the whole listening history once per server start and is then kept in memory, so this
+      wait happens to one visitor and every playlist after it builds in milliseconds.
+    </Notice>
   );
 }

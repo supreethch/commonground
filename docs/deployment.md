@@ -50,8 +50,9 @@ tier has no such expiry, needs no card, and scales compute to zero when idle.
 
 ### The Render free-hour ceiling, and why this demo will cold-start
 
-Render allows **750 free instance-hours per month per workspace**, and free
-services spin down after 15 minutes without traffic (about a minute to wake).
+Render allows **750 free instance-hours per month per workspace**, and documents
+that free services spin down after 15 minutes without traffic. The wake time is
+Render's figure, not one measured here — see the measurement below.
 a2transit and pulse already occupy that workspace, and pulse ships a keepalive
 workflow that pings it every 10 minutes to stay awake.
 
@@ -62,8 +63,8 @@ budget and suspend all three.
 
 So CommonGround deliberately ships **no keepalive** and accepts the cold start.
 The README says so in the same terms a2transit and pulse already do. This is the
-correct trade: an honest one-minute wake-up costs a recruiter a minute, while a
-suspended workspace costs three broken demo links.
+correct trade: a wake-up costs one visitor one wait, while a suspended workspace
+costs three broken demo links.
 
 If that becomes unacceptable, the escape hatch is moving CommonGround's API to a
 different free host — Hugging Face Spaces runs FastAPI with WebSockets and no
@@ -81,9 +82,42 @@ rather than aspirational. Turning it on is an environment variable.
 A spun-down service wakes on a new WebSocket connection as it would on an HTTP
 request, so the first visitor's socket connects after the wake rather than
 failing. The frontend still has to handle it: connection attempts back off and
-retry, and the UI says the server is waking rather than showing a dead spinner.
-Whether the observed wake time matches the documented "about a minute" gets
-measured at M6 and recorded, not repeated from the docs.
+retry, and the UI says what is happening rather than showing a dead spinner.
+
+### What was actually measured
+
+**The wake time is still unmeasured, and the docs no longer claim one.** An
+attempt to measure it did not reproduce a cold start at all:
+
+    idle window started 15:47:49Z, sleeping 16m
+    first request after idle, 16:03:49Z
+      COLD /health      -> 200 in 0.221746s
+      warm /health      -> 200 in 0.153165s
+      warm /api/artists -> 200 in 0.188974s
+
+Sixteen minutes of enforced silence is past Render's documented 15-minute
+threshold, yet the first request back took 0.22s. Either the service did not
+spin down, or something else woke it inside the window -- Render's inbound
+traffic is not visible from here, and a single visitor to the demo would be
+enough. A longer 35-minute window was started and then invalidated by a
+redeploy, so it produced nothing. Treat "this demo cold-starts" as the host's
+documented behaviour rather than an observed fact about this service.
+
+**The model fit, however, is real and was measured on the deployed instance:**
+
+    model: fitted=true users=1506 items=6201 interactions=51415 fit_seconds=21.832
+
+The recommender is fitted in-process on first use and cached with no TTL, so the
+first playlist generation after any restart pays 21.8s. `/health` returned 502
+during that window: the fit blocks the single free instance, so the service
+looks down while it runs, and a health check that lands mid-fit fails. This is
+the wait most visitors will actually notice -- considerably more than any cold
+start observed here -- which is why the room shows `FitNotice` and explains that
+it happens once per server start.
+
+`RecommenderService.invalidate()` exists and is documented as being "called
+after an ingest changes the catalogue", but nothing calls it. Rebuilding the
+catalogue therefore requires restarting the service to pick it up.
 
 ## Secrets and configuration
 

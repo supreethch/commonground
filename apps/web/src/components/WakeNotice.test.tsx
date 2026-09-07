@@ -1,6 +1,6 @@
 import { render, screen, act } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { WakeNotice, useElapsedWhile } from "./WakeNotice";
+import { FitNotice, WakeNotice, useElapsedWhile } from "./WakeNotice";
 
 /* The threshold is the whole point of this component, so it is what gets
  * tested: firing early would announce a cold start on every ordinary sign-in,
@@ -37,5 +37,24 @@ describe("useElapsedWhile", () => {
 
     rerender(<Probe active={false} />);
     expect(screen.queryByRole("status")).toBeNull();
+  });
+});
+
+describe("FitNotice", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it("explains the model fit rather than a server start", () => {
+    function Probe() {
+      return <FitNotice seconds={useElapsedWhile(true)} />;
+    }
+    render(<Probe />);
+    act(() => void vi.advanceTimersByTime(4000));
+
+    const status = screen.getByRole("status");
+    expect(status).toHaveTextContent("Fitting the recommendation model.");
+    // The two waits have different causes, so they must not share wording --
+    // telling someone the server is starting while it is fitting is a lie.
+    expect(status).not.toHaveTextContent("Starting the server");
   });
 });

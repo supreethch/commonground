@@ -14,6 +14,7 @@ import { ModeSwitch } from "../components/ModeSwitch";
 import { RoomSummary } from "../components/RoomSummary";
 import { TrackRow } from "../components/TrackRow";
 import { Button, Empty, ErrorNote, Panel, SkeletonRows } from "../components/ui";
+import { FitNotice, useElapsedWhile } from "../components/WakeNotice";
 
 /* The room: members, the invite link, the playlist, and live voting.
  *
@@ -28,6 +29,7 @@ export function RoomView({ roomId }: { roomId: string }) {
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const fitting = useElapsedWhile(generating);
   const [error, setError] = useState<string | null>(null);
   const [live, setLive] = useState(false);
   const [myVotes, setMyVotes] = useState<Record<number, -1 | 0 | 1>>({});
@@ -332,6 +334,7 @@ export function RoomView({ roomId }: { roomId: string }) {
       )}
 
       <Panel>
+        <FitNotice seconds={fitting} className="mb-4" />
         {generating && !playlist ? (
           <SkeletonRows rows={6} />
         ) : !playlist ? (

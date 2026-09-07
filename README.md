@@ -18,7 +18,7 @@ demo login `alex@commonground.demo` / `demo-read-only`
   <img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white">
   <img alt="React 19" src="https://img.shields.io/badge/React_19-Vite-61dafb?logo=react&logoColor=black">
   <img alt="PostgreSQL 17" src="https://img.shields.io/badge/PostgreSQL-17-336791?logo=postgresql&logoColor=white">
-  <img alt="263 tests passing" src="https://img.shields.io/badge/tests-263%20passing-4ade80">
+  <img alt="264 tests passing" src="https://img.shields.io/badge/tests-264%20passing-4ade80">
   <img alt="MIT licence" src="https://img.shields.io/badge/licence-MIT-blue">
 </p>
 
@@ -138,7 +138,7 @@ see [docs/development.md](docs/development.md), then
 ## What's next
 
 - **Broader catalogue.** The current catalogue is one day of ListenBrainz: 6,217
-  tracks by 2,741 artists, all real, but one day reflects one day's release
+  tracks by 2,638 artists, all real, but one day reflects one day's release
   cycle. Tracks are already capped per artist so a single release cannot
   dominate. Widening it is a matter of ingesting more dumps, not changing code.
 - **Group evaluation against real co-listening data.** Group metrics today rely

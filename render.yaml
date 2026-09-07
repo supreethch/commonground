@@ -67,5 +67,6 @@ services:
 # No keepalive workflow, deliberately. Render allows 750 free instance-hours per
 # month *per workspace*, and two other projects already share this one. One
 # always-awake service costs ~730 hours; three would need ~2,190 and suspend all
-# of them. This service sleeps after 15 minutes and takes about a minute to wake,
-# which the README says plainly. See docs/deployment.md.
+# of them. Render documents a 15-minute spin-down for free instances; the wake
+# time is not a number this repository has measured, so none is quoted here.
+# See docs/deployment.md.

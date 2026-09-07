@@ -86,8 +86,9 @@ One always-awake service costs about 730 hours a month; three would need about
 2,190. A keepalive here would not make this demo fast, it would exhaust the
 shared budget and suspend all three.
 
-**Cost:** roughly a minute to wake on first load. Stated in the README, as both
-other projects already do.
+**Cost:** a wait on the first load after an idle period. The README says so, as
+both other projects already do. No duration is quoted: see docs/deployment.md for
+what was actually observed.
 
 ## 7. Rank-percentile normalisation before any group aggregation
 
