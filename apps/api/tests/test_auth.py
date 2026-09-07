@@ -222,6 +222,27 @@ def test_a_throttled_response_says_when_to_retry(client, register) -> None:
     assert "Try again in" in response.json()["detail"]
 
 
+def test_rate_limiting_can_be_disabled(client, monkeypatch) -> None:
+    """The e2e suite and the latency benchmark run with RATE_LIMIT_ENABLED=false,
+    because a per-IP limiter cannot tell a test harness making many logins from
+    localhost apart from an attacker. With it off, the endpoint must never return
+    429 however hard it is hit."""
+    from commonground_api import config
+
+    off = Settings(
+        environment="test",
+        jwt_secret="test-secret-that-is-long-enough-to-be-plausible",
+        rate_limit_enabled=False,
+    )
+    monkeypatch.setattr(config, "get_settings", lambda: off)
+
+    body = {"email": "nobody@example.com", "password": "wrong"}
+    statuses = {
+        client.post("/api/auth/login", json=body).status_code for _ in range(LOGIN.limit + 10)
+    }
+    assert statuses == {401}, "429 appeared with rate limiting disabled"
+
+
 def test_signup_is_throttled_separately_from_login(client) -> None:
     """Separate buckets: exhausting one must not lock the other."""
     for index in range(8):

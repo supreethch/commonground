@@ -130,6 +130,10 @@ jobs:
       DATABASE_URL: postgresql://commonground:commonground@localhost:5432/commonground
       DEMO_USER_PASSWORD: demo-read-only
       USER_AGENT: "CommonGround CI (https://github.com/supreethchittaluri/commonground)"
+      # The suite signs in and generates playlists dozens of times from one
+      # address; a per-IP limiter would throttle the run itself. The limiter has
+      # its own dedicated tests in the `test` job.
+      RATE_LIMIT_ENABLED: "false"
 
     steps:
       - uses: actions/checkout@v4

@@ -51,6 +51,14 @@ class Settings(BaseSettings):
     # never be rate limited at all.
     trust_proxy: bool = False
 
+    # On by default so the deployed demo shows the limiter working. The
+    # end-to-end suite and the latency benchmark set this to false, because a
+    # per-IP limiter cannot tell a test harness making thirty logins from
+    # localhost apart from an attacker doing the same -- and a suite that
+    # throttles itself is measuring the limiter, not the application. The
+    # dedicated limiter tests in test_auth.py keep it on regardless.
+    rate_limit_enabled: bool = True
+
     log_level: str = "INFO"
     # JSON in production where a log viewer reads it; readable lines locally
     # where a person does.

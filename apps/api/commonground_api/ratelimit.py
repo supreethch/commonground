@@ -165,6 +165,13 @@ def client_key(request: Request) -> str:
 
 
 def enforce(request: Request, rule: Rule) -> None:
+    from .config import get_settings
+
+    # Off for the e2e suite and the latency benchmark; see the comment on
+    # Settings.rate_limit_enabled.
+    if not get_settings().rate_limit_enabled:
+        return
+
     retry_after = get_limiter().check(f"{rule.name}:{client_key(request)}", rule)
     if retry_after is None:
         return

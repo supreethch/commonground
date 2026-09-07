@@ -83,6 +83,9 @@ def create_app() -> FastAPI:
             # Unset means the in-process broadcaster, which is correct for a
             # single instance. See docs/architecture.md.
             "broadcaster": "redis" if settings.redis_url else "in-process",
+            # So the latency benchmark can refuse to report throttled numbers,
+            # and so an operator can see at a glance whether the limiter is live.
+            "rate_limiting": settings.rate_limit_enabled,
         }
 
     return app
