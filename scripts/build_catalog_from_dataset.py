@@ -40,6 +40,7 @@ import os
 import sys
 import urllib.parse
 import uuid
+from datetime import UTC, datetime
 from pathlib import Path
 
 import numpy as np
@@ -52,8 +53,15 @@ from commonground_api.imports.matching import normalise  # noqa: E402
 
 NO_LOGIN = "synthetic-listener-no-login"
 
-# Fixed namespace so an artist keeps the same id across rebuilds.
+# Fixed namespaces so an artist or recording keeps the same id across rebuilds
+# -- and, more usefully here, so rows can be bulk-loaded with COPY and joined
+# back by id afterwards instead of INSERT ... RETURNING one row at a time.
+#
+# That matters for the deploy: against a managed database on another continent,
+# ~30,000 round trips is twenty minutes, while a COPY of the same data is a
+# handful of statements.
 ARTIST_NAMESPACE = uuid.UUID("6f9b1e2c-0a3d-4f7b-9c1e-5d8a2b4c6e70")
+RECORDING_NAMESPACE = uuid.UUID("2c7e4a91-8b3f-4d6a-91e0-7f2b5c8d1a34")
 
 
 def search_url(artist: str, title: str) -> str:
@@ -190,27 +198,55 @@ def main(argv: list[str] | None = None) -> int:
         print(f"  {len(artist_ids):,} artists")
 
         # --- recordings ---------------------------------------------------
-        item_to_recording: dict[int, int] = {}
-        for index in sorted(keep):
-            item = items[index]
-            cur.execute(
-                "INSERT INTO recordings (mbid, title, listen_count) VALUES (%s, %s, %s) "
-                "RETURNING id",
-                (str(uuid.uuid4()), item["track"][:300], int(listeners_per_item[index])),
+        ordered = sorted(keep)
+        recording_mbids = {
+            index: uuid.uuid5(
+                RECORDING_NAMESPACE,
+                f"{normalise(items[index]['artist'])}\x1f{normalise(items[index]['track'])}",
             )
-            recording_id = cur.fetchone()[0]
-            item_to_recording[index] = recording_id
+            for index in ordered
+        }
+        # A deterministic mbid means the rows can go in with one COPY and be
+        # matched back afterwards, rather than a RETURNING per row.
+        seen_mbids: set[uuid.UUID] = set()
+        with cur.copy("COPY recordings (mbid, title, listen_count) FROM STDIN") as copy:
+            for index in ordered:
+                mbid = recording_mbids[index]
+                if mbid in seen_mbids:
+                    continue  # two dataset rows normalising to one track
+                seen_mbids.add(mbid)
+                copy.write_row(
+                    (str(mbid), items[index]["track"][:300], int(listeners_per_item[index]))
+                )
 
-            cur.execute(
-                "INSERT INTO recording_artists (recording_id, artist_id, position) "
-                "VALUES (%s, %s, 0)",
-                (recording_id, artist_ids[item["artist"]]),
-            )
-            cur.execute(
-                "INSERT INTO recording_links (recording_id, url, provider, source) "
-                "VALUES (%s, %s, 'youtube', 'search_url') ON CONFLICT DO NOTHING",
-                (recording_id, search_url(item["artist"], item["track"])),
-            )
+        cur.execute("SELECT mbid, id FROM recordings")
+        by_mbid = {str(mbid): pk for mbid, pk in cur.fetchall()}
+        item_to_recording = {
+            index: by_mbid[str(recording_mbids[index])]
+            for index in ordered
+            if str(recording_mbids[index]) in by_mbid
+        }
+
+        with cur.copy(
+            "COPY recording_artists (recording_id, artist_id, position) FROM STDIN"
+        ) as copy:
+            for index, recording_id in item_to_recording.items():
+                if recording_mbids[index] in seen_mbids:
+                    copy.write_row((recording_id, artist_ids[items[index]["artist"]], 0))
+                    seen_mbids.discard(recording_mbids[index])
+
+        with cur.copy(
+            "COPY recording_links (recording_id, url, provider, source) FROM STDIN"
+        ) as copy:
+            for index, recording_id in item_to_recording.items():
+                copy.write_row(
+                    (
+                        recording_id,
+                        search_url(items[index]["artist"], items[index]["track"]),
+                        "youtube",
+                        "search_url",
+                    )
+                )
         print(f"  {len(item_to_recording):,} recordings")
 
         cur.execute(
@@ -238,6 +274,7 @@ def main(argv: list[str] | None = None) -> int:
         )[: args.max_listeners]
 
         written = 0
+        listen_rows: list[tuple] = []
         for slot, user in enumerate(eligible):
             cur.execute(
                 "INSERT INTO users (email, password_hash, display_name, is_synthetic) "
@@ -247,12 +284,24 @@ def main(argv: list[str] | None = None) -> int:
                 (f"listener-{slot:05d}@synthetic.invalid", NO_LOGIN, f"Listener {slot:05d}"),
             )
             user_id = cur.fetchone()[0]
-            cur.executemany(
-                "INSERT INTO listens (user_id, recording_id, listened_at) "
-                "VALUES (%s, %s, to_timestamp(%s)) ON CONFLICT DO NOTHING",
-                [(user_id, item_to_recording[i], s) for i, s in per_user[user]],
+            listen_rows.extend(
+                (user_id, item_to_recording[i], stamp)
+                for i, stamp in per_user[user]
+                if i in item_to_recording
             )
             written += len(per_user[user])
+
+        # One COPY for ~50,000 listens rather than 1,500 executemany batches.
+        seen_listens: set[tuple] = set()
+        with cur.copy("COPY listens (user_id, recording_id, listened_at) FROM STDIN") as copy:
+            for user_id, recording_id, stamp in listen_rows:
+                # COPY has no ON CONFLICT, and (user, recording, listened_at) is
+                # unique -- so duplicates are dropped here instead.
+                key = (user_id, recording_id, stamp)
+                if key in seen_listens:
+                    continue
+                seen_listens.add(key)
+                copy.write_row((user_id, recording_id, datetime.fromtimestamp(stamp, tz=UTC)))
 
         conn.commit()
 
