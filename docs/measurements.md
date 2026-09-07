@@ -290,7 +290,7 @@ And the unconstrained search chose `tau_veto = 0.00` for fair_rotation. That max
 
 ## API latency
 
-*Measured 2026-09-06T23:55:34Z against `http://localhost:8010`, 25 runs per endpoint.*
+*Measured 2026-09-07T00:28:26Z against `http://localhost:8010`, 25 runs per endpoint.*
 
 Measured over HTTP against a live server, so the numbers include serialisation and the connection pool. The first playlist request pays to fit the recommender and is reported separately as a cold cost rather than a request cost.
 
@@ -298,20 +298,20 @@ p50 and p95 rather than a mean. A mean hides the tail, and the tail is what a us
 
 | endpoint | p50 | p95 | max | n |
 | --- | --- | --- | --- | --- |
-| `POST /api/auth/signup` | 36.4ms | 36.4ms | 36.4ms | 1 |
-| `POST /api/auth/login` | 27.5ms | 29.5ms | 32.7ms | 20 |
-| `POST /api/rooms/{id}/playlist` | 15.9ms | 18.0ms | 18.2ms | 19 |
-| `GET /api/rooms/{id}/playlist` | 4.9ms | 5.8ms | 6.1ms | 25 |
-| `GET /api/profile` | 4.0ms | 5.0ms | 6.1ms | 25 |
-| `GET /api/tags` | 3.5ms | 4.3ms | 4.7ms | 25 |
-| `GET /api/rooms/{id}` | 3.5ms | 4.1ms | 5.2ms | 25 |
-| `GET /api/auth/me` | 2.9ms | 3.6ms | 4.6ms | 25 |
-| `GET /api/artists?q=` | 2.7ms | 3.6ms | 4.4ms | 25 |
-| `GET /api/rooms` | 3.0ms | 3.5ms | 5.4ms | 25 |
-| `GET /api/artists` | 3.0ms | 3.4ms | 3.7ms | 25 |
-| `GET /health` | 1.6ms | 1.9ms | 7.1ms | 25 |
+| `POST /api/auth/signup` | 32.4ms | 32.4ms | 32.4ms | 1 |
+| `POST /api/auth/login` | 27.5ms | 28.7ms | 29.1ms | 25 |
+| `POST /api/rooms/{id}/playlist` | 16.4ms | 18.7ms | 25.4ms | 25 |
+| `GET /api/rooms/{id}/playlist` | 5.2ms | 6.2ms | 7.4ms | 25 |
+| `GET /api/profile` | 3.6ms | 5.2ms | 6.2ms | 25 |
+| `GET /api/tags` | 3.5ms | 4.6ms | 6.0ms | 25 |
+| `GET /api/rooms` | 3.0ms | 4.2ms | 5.5ms | 25 |
+| `GET /api/rooms/{id}` | 3.4ms | 4.1ms | 5.9ms | 25 |
+| `GET /api/artists` | 3.0ms | 3.4ms | 3.5ms | 25 |
+| `GET /api/artists?q=` | 2.6ms | 3.4ms | 3.8ms | 25 |
+| `GET /api/auth/me` | 3.0ms | 3.2ms | 3.4ms | 25 |
+| `GET /health` | 1.6ms | 1.7ms | 2.3ms | 25 |
 
-**First playlist on a cold process: 554.7ms.** That is the model being fitted, not a request being served -- the snapshot is cached for the life of the process, and `/health` reports its age so a slow first request is explicable rather than mysterious.
+**First playlist on a cold process: 556.0ms.** That is the model being fitted, not a request being served -- the snapshot is cached for the life of the process, and `/health` reports its age so a slow first request is explicable rather than mysterious.
 
 Login is the slowest endpoint and should be: almost all of those 27ms are Argon2, deliberately. It is also why the login endpoint is rate limited -- at 27ms a guess, an open endpoint accepts roughly 37 password attempts a second.
 

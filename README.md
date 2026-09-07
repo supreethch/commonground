@@ -14,7 +14,7 @@ explicitly rejected — and tells you, per track, in a sentence, why it is there
   <img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white">
   <img alt="React 19" src="https://img.shields.io/badge/React_19-Vite-61dafb?logo=react&logoColor=black">
   <img alt="PostgreSQL 17" src="https://img.shields.io/badge/PostgreSQL-17-336791?logo=postgresql&logoColor=white">
-  <img alt="258 tests" src="https://img.shields.io/badge/tests-258%20passing-4ade80">
+  <img alt="263 tests" src="https://img.shields.io/badge/tests-263%20passing-4ade80">
   <img alt="MIT" src="https://img.shields.io/badge/licence-MIT-blue">
 </p>
 

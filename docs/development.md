@@ -121,6 +121,42 @@ a Postgres service container precisely so the skip cannot become permanent.
 Each database test runs inside a transaction that is rolled back, so the suite
 leaves no rows behind and can be run against your development database safely.
 
+## Full local verification
+
+Everything the CI pipeline runs, in one place. Assumes the setup and demo-data
+steps above are done and Postgres is up.
+
+Start the two servers, with **rate limiting off** on the API — the end-to-end
+suite and the latency script sign in dozens of times from `localhost`, and a
+per-IP limiter would throttle the run itself:
+
+```bash
+RATE_LIMIT_ENABLED=false ./.venv/bin/uvicorn commonground_api.main:app --port 8010 &
+npm run dev --prefix apps/web &
+```
+
+Pass `RATE_LIMIT_ENABLED` to the process as shown — do **not** `export` it, or
+`pytest` in the same shell inherits it and the limiter tests fail. The limiter
+still has full coverage in `apps/api/tests/test_auth.py`, which forces it on.
+
+```bash
+export DATABASE_URL=postgresql://commonground:commonground@localhost:5434/commonground
+
+./.venv/bin/pytest -q && ./.venv/bin/ruff check . && ./.venv/bin/ruff format --check .
+npm test --prefix apps/web && npm run build --prefix apps/web
+
+./.venv/bin/python scripts/measure_api.py --runs 25   # refuses if the limiter is on
+./.venv/bin/python scripts/write_measurements.py       # regenerates docs/measurements.md
+
+(cd apps/web && E2E_BASE_URL=http://localhost:5173 npx playwright test)
+```
+
+Regenerate the README screenshots (desktop only, writes to `docs/images/`):
+
+```bash
+(cd apps/web && E2E_BASE_URL=http://localhost:5173 npx playwright test screenshots --project=desktop)
+```
+
 ## Demo accounts
 
 `scripts/seed.py` creates six accounts, password from `DEMO_USER_PASSWORD`
