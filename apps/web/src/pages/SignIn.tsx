@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ApiError } from "../api";
 import { useAuth } from "../auth";
 import { Button, ErrorNote, Field } from "../components/ui";
+import { WakeNotice, useElapsedWhile } from "../components/WakeNotice";
 
 /* Sign in / sign up, and the demo shortcut.
  *
@@ -22,6 +23,7 @@ export function SignIn() {
   const [displayName, setDisplayName] = useState("");
   const [busy, setBusy] = useState<"form" | "demo" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const waking = useElapsedWhile(busy !== null);
 
   async function attempt(run: () => Promise<void>, which: "form" | "demo") {
     setBusy(which);
@@ -59,6 +61,7 @@ export function SignIn() {
           Signs you in as Alex, one of six seeded listeners with real, deliberately
           conflicting taste. Read-only — it can browse rooms but not change a profile.
         </p>
+        {busy === "demo" && <WakeNotice seconds={waking} className="mt-3" />}
       </div>
 
       <div className="mb-7 flex items-center gap-3" aria-hidden="true">
@@ -110,6 +113,7 @@ export function SignIn() {
         />
 
         {error && <ErrorNote message={error} />}
+        {busy === "form" && <WakeNotice seconds={waking} />}
 
         <Button
           type="submit"

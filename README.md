@@ -18,7 +18,7 @@ demo login `alex@commonground.demo` / `demo-read-only`
   <img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white">
   <img alt="React 19" src="https://img.shields.io/badge/React_19-Vite-61dafb?logo=react&logoColor=black">
   <img alt="PostgreSQL 17" src="https://img.shields.io/badge/PostgreSQL-17-336791?logo=postgresql&logoColor=white">
-  <img alt="260 tests passing" src="https://img.shields.io/badge/tests-260%20passing-4ade80">
+  <img alt="263 tests passing" src="https://img.shields.io/badge/tests-263%20passing-4ade80">
   <img alt="MIT licence" src="https://img.shields.io/badge/licence-MIT-blue">
 </p>
 
@@ -32,8 +32,10 @@ anything. Playlists build in <strong>16ms</strong>.</sub>
 
 <img src="docs/images/mobile.png" alt="The same room on a phone: members wrap to two rows, the reason stays readable, and the satisfaction strip survives a 390px viewport." width="280">
 
-> The live demo sleeps when idle, so the first request can take up to a minute to
-> wake the API. The app shows its progress while it waits.
+> The API is hosted on a free tier that suspends the service after 15 minutes
+> without traffic, so the first request of a visit has to start it back up. The
+> app says that on screen and counts the wait, rather than showing a bare
+> spinner that looks like a hang. Everything is fast once it is warm.
 
 ## What it does
 

@@ -6,15 +6,18 @@ import { RoomView } from "./pages/RoomView";
 import { Rooms } from "./pages/Rooms";
 import { SignIn } from "./pages/SignIn";
 import { Button, Spinner } from "./components/ui";
+import { WakeNotice, useElapsedWhile } from "./components/WakeNotice";
 
 export function App() {
   const { user, loading, signOut } = useAuth();
   const [route] = useHashRoute();
+  const waking = useElapsedWhile(loading);
 
   if (loading) {
     return (
-      <div className="flex min-h-dvh items-center justify-center text-ink-500">
+      <div className="mx-auto flex min-h-dvh max-w-sm flex-col items-center justify-center gap-4 px-5 text-ink-500">
         <Spinner />
+        <WakeNotice seconds={waking} />
       </div>
     );
   }
