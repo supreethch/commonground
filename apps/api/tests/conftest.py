@@ -94,6 +94,24 @@ def _fresh_rate_limiter():
     reset_limiter()
 
 
+@pytest.fixture(autouse=True)
+def _fresh_recommender_snapshot():
+    """The recommender caches its fitted model in a process-global singleton.
+
+    Each test runs in a transaction that is rolled back, so a snapshot built
+    inside one test references recording ids that no longer exist once it ends.
+    Without this reset, the next test to generate a playlist reuses that stale
+    snapshot and inserts playlist_tracks rows that violate the foreign key --
+    which is exactly how CI first failed while local runs, with a real catalogue
+    already committed, passed.
+    """
+    from commonground_api.services.recommender import recommender_service
+
+    recommender_service.invalidate()
+    yield
+    recommender_service.invalidate()
+
+
 @pytest.fixture
 def settings() -> Settings:
     return Settings(
