@@ -1,160 +1,198 @@
 # commonground
 
-Five people in a car, one speaker, and a recommender that was built for one
-person at a time. The usual fix is to average everyone's taste, which reliably
-produces the one playlist nobody chose: average the person who wants Ethiopian
-jazz with the person who wants hyperpop and you get neither, and the averaging
-hides *who* it failed. CommonGround ranks a shared playlist on what a group
-actually needs — how satisfied the **least** satisfied member is, whether one
-person is quietly driving the whole hour, and whether anyone is being made to sit
-through something they have explicitly said they hate — and tells you, per track,
-in a sentence, why it is there.
+Five people in a car, one speaker, and a recommender built for one person at a
+time. The usual fix is to average everyone's taste, which reliably produces the
+one playlist nobody chose: average the person who wants Ethiopian jazz with the
+person who wants hyperpop and you get neither — and the averaging hides *who* it
+failed. CommonGround ranks a shared playlist on what a group actually needs —
+how satisfied the **least** satisfied member is, whether one person is quietly
+driving the whole hour, whether anyone is sitting through something they have
+explicitly rejected — and tells you, per track, in a sentence, why it is there.
 
-> **Status: milestone 4 of 6 — group recommendation, measured on two datasets.**
-> No live demo and no UI yet. What works today: real signup and login,
-> Spotify-free onboarding, history import for three export formats, a hybrid
-> individual recommender (**3.1× the precision of a popularity baseline while
-> recommending 69× more of the catalogue**), and the group layer — three modes,
-> a hard veto, fairness-aware selection, and per-track explanations derived from
-> the score arithmetic. Rooms, invites, real-time voting and the UI are M5.
-> Full numbers, including what could *not* be shown, in
-> [measurements](docs/measurements.md).
+<p>
+  <img alt="Python 3.12" src="https://img.shields.io/badge/python-3.12-3776ab?logo=python&logoColor=white">
+  <img alt="FastAPI" src="https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white">
+  <img alt="React 19" src="https://img.shields.io/badge/React_19-Vite-61dafb?logo=react&logoColor=black">
+  <img alt="PostgreSQL 17" src="https://img.shields.io/badge/PostgreSQL-17-336791?logo=postgresql&logoColor=white">
+  <img alt="258 tests" src="https://img.shields.io/badge/tests-258%20passing-4ade80">
+  <img alt="MIT" src="https://img.shields.io/badge/licence-MIT-blue">
+</p>
 
-## Why this is not a wrapper around a language model
+![A room of six with a generated playlist. Each track carries a sentence explaining why it is there and a strip of bars showing how well it serves each member, with the least-served one in amber.](docs/images/room.png)
 
-No LLM produces or explains a playlist here. The ranker is a hybrid of
-content-based similarity and collaborative filtering, combined by a group
-aggregation step that is a sum of named terms — so the explanation attached to a
-track is *derived from the arithmetic that ranked it*, not written alongside it
-afterwards. A test asserts every clause in a rendered reason corresponds to a
-non-zero score contribution.
+<sub>Six listeners with deliberately conflicting taste. Fair rotation picks each
+slot for whoever the room has served least — Alex, then Rio, then Nina — and the
+reason on every track is generated from the arithmetic that ranked it, not
+written next to it.</sub>
 
-That is the whole point. "Recommended because 3 members like indie rock, it's
-similar to Alex's favourites, and it introduces a new artist without strongly
-conflicting with anyone's dislikes" is only worth reading if each clause is a
-number the system actually computed.
+> **Status: milestone 6 of 6.** Not yet deployed — the blueprints are written
+> and verified, the live link is the last step. Everything below runs locally
+> with `docker compose up` and the commands in
+> [docs/development.md](docs/development.md).
+
+## The thing this project is actually about
+
+No language model produces or explains a playlist here. The ranker is a hybrid
+of collaborative filtering and content similarity, combined by a group
+aggregation step that is a **sum of named terms** — so the explanation attached
+to a track is *derived from the arithmetic that ranked it*. A test asserts, in
+both directions, that every rendered clause maps to a term that actually moved
+the score and that a term which did not fire produces no clause.
+
+That correspondence is the whole point. "Recommended because everyone likes hip
+hop, it's Alex's turn to be served, and it introduces an artist new to everyone"
+is only worth reading if each clause is a number the system computed.
+
+![The per-member satisfaction panel, showing each member's predicted score and naming the one served least by this track.](docs/images/satisfaction.png)
+
+## What was measured, including where it loses
+
+Full detail — and the caveats — in **[docs/measurements.md](docs/measurements.md)**,
+which is *generated* from `eval/results/`, never typed.
+
+**Individual recommendation**, 2,248 real ListenBrainz users, time-ordered
+leave-last-5-out:
+
+| model | P@10 | NDCG@10 | catalogue coverage |
+| --- | --- | --- | --- |
+| popularity baseline | 0.0199 | 0.0412 | 0.55% |
+| **hybrid (item-kNN + ALS)** | **0.0624** | **0.1136** | **37.6%** |
+
+3.1× the precision of popularity while recommending 69× more of the catalogue.
+
+**Group recommendation**, 200 synthetic groups on two datasets, paired bootstrap
+against the average-score baseline:
+
+| consensus − average-score | ListenBrainz | MovieLens-1M |
+| --- | --- | --- |
+| held-out accuracy | not distinguishable | not distinguishable |
+| **veto violations** | **−0.073** ✓ | **−0.024** ✓ |
+| **worst-artist share** | **−0.074** ✓ | **−0.147** ✓ |
+| **predicted floor** | **+0.053** ✓ | **+0.009** ✓ |
+
+The honest claim: **fairness and repetition guarantees at no measurable accuracy
+cost.** Not "better recommendations" — the accuracy intervals straddle zero on
+both datasets, in both directions.
+
+**I had to withdraw a claim to get here.** Milestone 4 reported that the group
+layer wins on groups whose tastes conflict and loses on groups that agree,
+calling it the project's thesis measured. It was a ~0.01 gap over 50 groups, it
+sits inside the noise band, and **its sign reverses on the second dataset.**
+Adding MovieLens is what caught it. The retraction is in the git history and in
+the measurements doc, because an evaluation that only ever confirms itself is
+not an evaluation.
+
+**API latency**, measured over HTTP against a live server:
+
+| | p50 | p95 |
+| --- | --- | --- |
+| playlist generation (20 tracks, 6 members) | 15.9ms | 18.0ms |
+| login | 27.5ms | 29.5ms |
+| everything else | 1.6–4.9ms | ≤5.8ms |
+
+Model fit is 555ms once per process, not per request. No index was added on the
+strength of these numbers, because nothing is slow — the honest response to a
+fast system is to record the threshold, not to optimise against a problem it
+does not have.
 
 ## Three modes, one ranker
 
-| Mode | What it optimises |
+| mode | optimises |
 | --- | --- |
-| **Consensus** | Protects the least-satisfied member. Strict vetoes, low novelty. |
-| **Discovery** | Rewards music unfamiliar to *everyone*, relaxes the floor slightly. |
-| **Fair Rotation** | At each slot, picks for whoever the playlist has served least so far. |
+| **Consensus** | Protects whoever is worst served. Strict about strong objections. |
+| **Discovery** | Rewards music unfamiliar to *everyone*, at a real accuracy cost. |
+| **Fair rotation** | Each slot picks for whoever the room has served least. |
 
-They are three parameter sets over the same ranker, not three code paths — which
-also means the evaluation compares them on identical machinery.
+Three parameter sets over one ranker, fitted on validation groups nested inside
+the training split — so the evaluation compares them on identical machinery, and
+the running app uses the same numbers the measurements report.
 
-## Planned stack
+The veto is a **hard filter, not a penalty term**: nine members adoring a track
+must not outvote one member at zero, and any penalty large enough to prevent that
+would block everything else too. When a room is too divided to fill a playlist
+under the strict floor, the veto is relaxed one step at a time and **the UI says
+so** rather than quietly serving someone a track they would have rejected.
 
-**Engine:** Python 3.12, NumPy, pandas, scikit-learn, `implicit` (ALS)
-**API:** FastAPI, Pydantic v2, SQLAlchemy 2.0, PostgreSQL 17, WebSockets
-**Frontend:** TypeScript, React 19, Vite, Tailwind
-**Tests:** pytest, Vitest, Playwright · **CI:** GitHub Actions · **Local:** Docker Compose
+## Stack
+
+**Engine:** Python 3.12, NumPy, scikit-learn, `implicit` (ALS) — a separate
+package with no FastAPI, SQLAlchemy or HTTP imports, enforced by a test that
+walks its AST.
+**API:** FastAPI, Pydantic v2, SQLAlchemy 2.0, PostgreSQL 17, WebSockets.
+**Web:** TypeScript, React 19, Vite, Tailwind 4.
+**Tests:** pytest, Vitest, Playwright · **CI:** GitHub Actions · **Local:** Docker Compose.
+
+<img src="docs/images/mobile.png" alt="The same room on a phone: members wrap, the reason stays readable, and the satisfaction strip survives a 390px viewport." width="300">
+
+## Running it
+
+```bash
+docker compose up -d
+python3.12 -m venv .venv
+./.venv/bin/pip install -e "packages/engine[dev]" -e "apps/api[dev]" "psycopg[binary]"
+
+export DATABASE_URL=postgresql://commonground:commonground@localhost:5434/commonground
+./.venv/bin/python db/migrate.py
+./.venv/bin/python scripts/seed_ci_catalogue.py   # synthetic; instant
+./.venv/bin/python scripts/seed.py
+
+./.venv/bin/uvicorn commonground_api.main:app --port 8010 &
+npm install --prefix apps/web && npm run dev --prefix apps/web
+```
+
+Then open <http://localhost:5173> and click **Try the demo account**.
+
+For the real catalogue instead of the synthetic one — about 40 minutes, almost
+all of it MusicBrainz's rate limit — see
+[docs/development.md](docs/development.md).
 
 ## Docs
 
 [Architecture](docs/architecture.md) ·
 [Recommendation engine](docs/recommender.md) ·
 [**Measurements**](docs/measurements.md) ·
-[Database schema](db/001_init.sql) ·
-[Evaluation plan](docs/evaluation.md) ·
+[Evaluation protocol](docs/evaluation.md) ·
 [Data sources and licences](docs/data-sources.md) ·
 [Deployment](docs/deployment.md) ·
-[Decisions](docs/decisions.md)
+[Decisions](docs/decisions.md) ·
+[Running it locally](docs/development.md)
 
-## Verify
+## Some things that went wrong
 
-```bash
-docker compose up -d                       # Postgres on :5434, Redis on :6380
-python3.12 -m venv .venv                   # 3.12 specifically; 3.9 will not do
-./.venv/bin/pip install -e "packages/engine[dev]" -e "apps/api[dev]" "psycopg[binary]"
+Kept because a repository containing only successes is not an audit trail.
 
-export DATABASE_URL=postgresql://commonground:commonground@localhost:5434/commonground
-./.venv/bin/python db/migrate.py
-./.venv/bin/pytest -q
-./.venv/bin/ruff check . && ./.venv/bin/ruff format --check .
-./.venv/bin/python scripts/verify_sources.py
-```
-
-To build the catalogue and try the API for real, see
-[docs/development.md](docs/development.md). The catalogue build takes about 40
-minutes the first time — almost all of it waiting on MusicBrainz's rate limit —
-and is cached and resumable.
-
-The last command re-checks every upstream data source and rewrites
-[`docs/source-provenance.json`](docs/source-provenance.json) with what they
-actually returned — sizes, timestamps, licences. Numbers quoted in the
-documentation come from that file rather than from memory.
-
-## Measured so far
-
-Only what has actually been run. This table grows as milestones land; it will not
-contain a number that was not produced by a command in this repository.
-
-| | Measured 2026-09-06 |
-| --- | --- |
-| Python tests passing | 212 (120 in the engine) |
-| Datasets | ListenBrainz slice (2,248×12,273, 0.36% dense) and MovieLens-1M (5,178×3,115, 3.48%) |
-| Best individual model P@10 | 0.0624 (music) · 0.0331 (MovieLens) |
-| Popularity baseline P@10 | 0.0199 (music) · 0.0220 (MovieLens) |
-| Catalogue coverage: best vs popularity | 39.8% vs 0.55% (music) |
-| Group: veto violations vs average-score | **0.0000 vs 0.0727** (music), **0.0000 vs 0.0240** (MovieLens) |
-| Group: worst-artist share vs average-score | **0.131 vs 0.205** (music), **0.230 vs 0.377** (MovieLens) |
-| Group: held-out accuracy vs average-score | **not distinguishable from zero on either dataset** |
-| Artist genre coverage after enrichment | 91.2% of items, 91.2% of interactions |
-| ListenBrainz dump: MBID coverage | 1.9% of listens carry a recording MBID |
-
-Full detail, including what these numbers are *not*, in
-[docs/measurements.md](docs/measurements.md) — which is generated from
-`eval/results/`, never typed.
-
-Two of those rows changed the design.
-
-**URL relations are too sparse to rely on.** Streaming links were meant to come
-from MusicBrainz's CC0 relationships; at the recording level they are mostly
-absent. Playback links are deterministic search URLs, with real relations
-preferred where they exist, and `recording_links.source` records which is which.
-
-**The genre pass had to be reordered.** MusicBrainz throttles by stalling a
-connection ~20s and then returning 503, and the build originally walked artists
-in MBID order — so any capped or interrupted run tagged an effectively random
-subset, leaving the artists every onboarding screen shows untagged. It now walks
-most-listened first, so any prefix of the work is the most useful prefix
-available.
-
-**Known gap:** the onboarding catalogue comes from ListenBrainz's most-played
-recordings, so it skews hard to pop and rock — the seeded ambient/classical
-persona matches only 6 artists against 94 for the indie-rock one. M3 works
-around this for the recommender by building its dataset from the listen dumps
-instead, where item identity is the normalised artist and track name.
-
-**A negative result worth stating:** the fitted weight search gave the
-content-based model and the popularity prior **zero** weight. MovieLens-1M
-settled why. It has genres on 100% of items, and content-KNN still scores
-P@10 0.0044 there — *worse* than on the music data. Genre alone is a weak
-recommendation signal; our music tags were not the problem.
-
-**A claim I had to withdraw.** Milestone 4 originally reported that the group
-layer wins on groups whose tastes conflict and loses on groups that agree. That
-was a ~0.01 gap over 50 groups. Paired bootstrap intervals show it inside the
-noise, and **its sign reverses on MovieLens-1M**. The second dataset is what
-caught it. What survives on both datasets, significantly: zero veto violations,
-much less repetition, a higher proxy floor — and no measurable accuracy cost.
+- **A room of eight returned an empty playlist.** The veto's survival rate is
+  `0.65ⁿ` and the candidate pool was *shrinking* as it needed to grow, because
+  every member's history is excluded from it. Found by measuring room sizes 2–12,
+  not by using the app.
+- **`Counter.update(dict)` adds the dict's values as counts.** Mine were
+  timestamps, so every item scored ~1.8 billion and sailed through a "≥5
+  listeners" filter. Caught because 420,530 surviving items on 636,072
+  interactions is arithmetically impossible.
+- **The WebSocket held a pooled database connection for its entire lifetime.**
+  With `pool_size=5`, ten open rooms would have exhausted the pool and stopped
+  the API answering anything.
+- **Every reason in a playlist read identically.** Member genres came from
+  listens alone, so a freshly-onboarded user — the one most likely to be looking
+  at the demo — got the same fallback sentence twenty times.
+- **The app and its own measurements ran different parameters.** The evaluation
+  applied fitted values through a config override while the API used the
+  documented defaults, so the numbers described a system nobody was running.
 
 ## Licence and data
 
 The code is MIT — see [LICENSE](LICENSE). The data is not all the same, and the
 differences are load-bearing:
 
-- MusicBrainz **core** data (artists, recordings, releases, relationships) is
-  **CC0**.
+- MusicBrainz **core** data (artists, recordings, relationships) is **CC0**.
 - MusicBrainz **tags, including genre associations**, are **CC BY-NC-SA 3.0**.
   Genre is this project's primary content feature, so **CommonGround is
   non-commercial**, credits MusicBrainz, and keeps everything derived from those
-  tags out of this repository — `data/` is git-ignored and rebuilt locally.
-- ListenBrainz listens are **CC0**.
+  tags out of this repository — `data/` is git-ignored and rebuilt locally. CI
+  generates a synthetic catalogue rather than committing one, for the same
+  reason.
+- ListenBrainz listens are **CC0**. MovieLens is used under GroupLens's research
+  terms and is not redistributed here.
 
-No upstream data ships here, and **no audio is hosted** — tracks link out to
-legal external playback. Full terms in
-[docs/data-sources.md](docs/data-sources.md).
+No upstream data ships in this repository, and **no audio is hosted** — tracks
+link out to legal external playback.
